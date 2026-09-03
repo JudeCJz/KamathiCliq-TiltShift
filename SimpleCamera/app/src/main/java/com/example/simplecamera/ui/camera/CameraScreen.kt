@@ -1403,15 +1403,16 @@ fun CompassWithNS(accentColor: Color, modifier: Modifier = Modifier) {
     }
 }
 
-// Phone tilting font emoji
+// Lucide vibrate phone icon for Tilt HUD
 @Composable
 fun TiltedPhoneIcon(tint: Color, modifier: Modifier = Modifier) {
-    Text(
-        text = "📱",
-        fontSize = 13.sp,
+    Icon(
+        painter = painterResource(id = R.drawable.ic_tilt_vibrate),
+        contentDescription = "Tilt",
+        tint = tint,
         modifier = modifier
+            .size(15.dp)
             .offset(y = (-1).dp)
-            .rotate(-22f)
     )
 }
 
