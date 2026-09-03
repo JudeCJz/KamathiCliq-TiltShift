@@ -1078,15 +1078,15 @@ fun PuzzleLockStatusHUD(
             (mode != CameraMode.NORMAL && isAngleClose) ||
             (mode == CameraMode.PEAK && isCompassClose)
 
-    // ONE Single Sleek Frosted Capsule Box (No nested boxes)
+    // ONE Single Sleek Frosted Capsule Box (No nested boxes, reduced padding)
     Surface(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(22.dp),
         color = Color(0xFF0C1322).copy(alpha = 0.65f)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             // 1. Left Lock Indicator Circle
             val lockColor by animateColorAsState(
@@ -1102,14 +1102,14 @@ fun PuzzleLockStatusHUD(
                 shape = CircleShape,
                 color = lockColor.copy(alpha = 0.18f),
                 border = BorderStroke(1.2.dp, lockColor.copy(alpha = 0.65f)),
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(28.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = if (isAllUnlocked) Icons.Filled.LockOpen else Icons.Filled.Lock,
                         contentDescription = "Lock Status",
                         tint = lockColor,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
@@ -1118,11 +1118,11 @@ fun PuzzleLockStatusHUD(
             Box(
                 modifier = Modifier
                     .width(1.dp)
-                    .height(18.dp)
+                    .height(24.dp)
                     .background(Color.White.copy(alpha = 0.15f))
             )
 
-            // 2. Zoom Requirement (Direct inline, no nested box)
+            // 2. Zoom Requirement (Label on top, pure icon in middle, values on bottom)
             RequirementItem(
                 icon = { tint ->
                     Icon(
@@ -1136,16 +1136,15 @@ fun PuzzleLockStatusHUD(
                 targetValue = "${String.format(Locale.US, "%.1f", target.targetZoom)}x",
                 currentValue = "${String.format(Locale.US, "%.1f", currentZoom)}x",
                 isMatched = isZoomLocked,
-                isClose = isZoomClose,
-                isInlineStyle = true
+                isClose = isZoomClose
             )
 
-            // 3. Tilt Requirement (Active in Pro & Peak modes, no nested box)
+            // 3. Tilt Requirement (Active in Pro & Peak modes)
             if (mode == CameraMode.PRO || mode == CameraMode.PEAK) {
                 Box(
                     modifier = Modifier
                         .width(1.dp)
-                        .height(18.dp)
+                        .height(24.dp)
                         .background(Color.White.copy(alpha = 0.15f))
                 )
 
@@ -1161,12 +1160,12 @@ fun PuzzleLockStatusHUD(
                 )
             }
 
-            // 4. Heading / Compass Card with N on top and S on bottom!
+            // 4. Heading / Compass (Active in Peak mode, with N on top and S on bottom)
             if (mode == CameraMode.PEAK) {
                 Box(
                     modifier = Modifier
                         .width(1.dp)
-                        .height(18.dp)
+                        .height(24.dp)
                         .background(Color.White.copy(alpha = 0.15f))
                 )
 
@@ -1186,7 +1185,7 @@ fun PuzzleLockStatusHUD(
             Box(
                 modifier = Modifier
                     .width(1.dp)
-                    .height(18.dp)
+                    .height(24.dp)
                     .background(Color.White.copy(alpha = 0.15f))
             )
 
@@ -1195,7 +1194,7 @@ fun PuzzleLockStatusHUD(
                 shape = CircleShape,
                 color = Color.White.copy(alpha = 0.08f),
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(28.dp)
                     .clickable(onClick = onRerollTarget)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -1203,7 +1202,7 @@ fun PuzzleLockStatusHUD(
                         imageVector = Icons.Filled.Refresh,
                         contentDescription = "New Target",
                         tint = Color.White,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
@@ -1211,7 +1210,7 @@ fun PuzzleLockStatusHUD(
     }
 }
 
-// Requirement Item - Borderless, clean element inside the single parent box
+// Requirement Item - Clean parallel alignment: Label on top, pure icon in center (NO circle), values on bottom
 @Composable
 fun RequirementItem(
     icon: @Composable (Color) -> Unit,
@@ -1220,7 +1219,6 @@ fun RequirementItem(
     currentValue: String,
     isMatched: Boolean,
     isClose: Boolean,
-    isInlineStyle: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val accentColor by animateColorAsState(
@@ -1232,100 +1230,75 @@ fun RequirementItem(
         label = "reqAccent"
     )
 
-    Row(
-        modifier = modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier.padding(horizontal = 5.dp, vertical = 1.dp)
     ) {
-        // Circular Icon Badge
-        Surface(
-            shape = CircleShape,
-            color = Color.White.copy(alpha = 0.08f),
-            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.40f)),
-            modifier = Modifier.size(26.dp)
+        // 1. Parallel Label on top ("Zoom", "Tilt", "Heading")
+        Text(
+            text = label,
+            color = Color.White.copy(alpha = 0.65f),
+            fontSize = 8.5.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            softWrap = false
+        )
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        // 2. Pure Icon (NO circular badge wrapper)
+        Box(
+            modifier = Modifier.size(15.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                icon(accentColor)
-            }
+            icon(accentColor)
         }
 
-        Spacer(modifier = Modifier.width(5.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
-        // Label & Value Content
-        Column {
+        // 3. Values: Target and Current
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
             Text(
-                text = label,
-                color = Color.White.copy(alpha = 0.60f),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Medium,
+                text = targetValue,
+                color = accentColor,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Black,
                 maxLines = 1,
                 softWrap = false
             )
-
-            if (isInlineStyle) {
-                // Inline Target | Current
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 1.dp)
-                ) {
-                    Text(
-                        text = targetValue,
-                        color = accentColor,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Black,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(9.dp)
-                            .background(Color.White.copy(alpha = 0.20f))
-                    )
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text(
-                        text = currentValue,
-                        color = Color.White.copy(alpha = 0.45f),
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
-            } else {
-                // Stacked Target with small live value underneath
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = targetValue,
-                        color = accentColor,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Black,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = currentValue,
-                        color = Color.White.copy(alpha = 0.45f),
-                        fontSize = 9.sp,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.width(2.5.dp))
+            Text(
+                text = currentValue,
+                color = Color.White.copy(alpha = 0.45f),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Normal,
+                maxLines = 1,
+                softWrap = false
+            )
         }
     }
 }
 
-// Compass Icon with N on top, nautical needle in center, and S on bottom (no overlap)
+// Pure Compass with N on top, nautical needle in center, and S on bottom (no circle outline)
 @Composable
 fun CompassWithNS(accentColor: Color, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.size(24.dp),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        // Authentic magnetic nautical needle
-        Canvas(modifier = Modifier.size(width = 8.dp, height = 11.dp)) {
+        Text(
+            text = "N",
+            color = if (accentColor == Color.White) Color(0xFFFF3B30) else accentColor,
+            fontSize = 5.5.sp,
+            fontWeight = FontWeight.Black,
+            lineHeight = 6.sp
+        )
+        Canvas(modifier = Modifier.size(width = 7.dp, height = 9.dp)) {
             val w = size.width
             val h = size.height
             val midX = w / 2f
@@ -1365,23 +1338,12 @@ fun CompassWithNS(accentColor: Color, modifier: Modifier = Modifier) {
             }
             drawPath(southLeft, color = Color.White.copy(alpha = 0.85f))
         }
-
-        // 'N' letter pinned safely near top edge
-        Text(
-            text = "N",
-            color = Color(0xFFFF3B30),
-            fontSize = 6.sp,
-            fontWeight = FontWeight.Black,
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
-
-        // 'S' letter pinned safely above bottom border
         Text(
             text = "S",
-            color = Color.White.copy(alpha = 0.70f),
-            fontSize = 6.sp,
+            color = Color.White.copy(alpha = 0.60f),
+            fontSize = 5.5.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.BottomCenter)
+            lineHeight = 6.sp
         )
     }
 }
