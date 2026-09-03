@@ -1249,10 +1249,22 @@ fun LaunchTipsLoadingOverlay(
 
     val loadingBarDrawables = remember {
         listOf(
-            R.drawable.loading_bar_00, R.drawable.loading_bar_01, R.drawable.loading_bar_02, R.drawable.loading_bar_03,
-            R.drawable.loading_bar_04, R.drawable.loading_bar_05, R.drawable.loading_bar_06, R.drawable.loading_bar_07,
-            R.drawable.loading_bar_08, R.drawable.loading_bar_09, R.drawable.loading_bar_10, R.drawable.loading_bar_11,
-            R.drawable.loading_bar_12, R.drawable.loading_bar_13, R.drawable.loading_bar_14, R.drawable.loading_bar_15,
+            R.drawable.loading_bar_00,
+            R.drawable.loading_bar_01,
+            // skipped: loading_bar_02
+            R.drawable.loading_bar_03,
+            // skipped: loading_bar_04
+            R.drawable.loading_bar_05,
+            R.drawable.loading_bar_06,
+            R.drawable.loading_bar_07,
+            // skipped: loading_bar_08
+            R.drawable.loading_bar_09,
+            // skipped: loading_bar_10
+            R.drawable.loading_bar_11,
+            R.drawable.loading_bar_12,
+            R.drawable.loading_bar_13,
+            // skipped: loading_bar_14
+            R.drawable.loading_bar_15,
             R.drawable.loading_bar_16
         )
     }
@@ -1318,10 +1330,11 @@ fun LaunchTipsLoadingOverlay(
     }
 
     val barFrameIndex = remember(progress, isDone) {
+        val maxIdx = loadingBarDrawables.lastIndex
         if (!isDone) {
-            (progress / 100f * 16f).toInt().coerceIn(0, 16)
+            (progress / 100f * maxIdx).toInt().coerceIn(0, maxIdx)
         } else {
-            16
+            maxIdx
         }
     }
 
