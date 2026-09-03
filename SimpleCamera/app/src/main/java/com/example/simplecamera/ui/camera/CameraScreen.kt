@@ -946,7 +946,7 @@ fun LaunchTipsLoadingOverlay(
             R.drawable.loading_bar_04, R.drawable.loading_bar_05, R.drawable.loading_bar_06, R.drawable.loading_bar_07,
             R.drawable.loading_bar_08, R.drawable.loading_bar_09, R.drawable.loading_bar_10, R.drawable.loading_bar_11,
             R.drawable.loading_bar_12, R.drawable.loading_bar_13, R.drawable.loading_bar_14, R.drawable.loading_bar_15,
-            R.drawable.loading_bar_16, R.drawable.loading_bar_17
+            R.drawable.loading_bar_16
         )
     }
 
@@ -1012,9 +1012,9 @@ fun LaunchTipsLoadingOverlay(
 
     val barFrameIndex = remember(progress, isDone) {
         if (!isDone) {
-            (progress / 100f * 17f).toInt().coerceIn(0, 17)
+            (progress / 100f * 16f).toInt().coerceIn(0, 16)
         } else {
-            17
+            16
         }
     }
 
@@ -1033,7 +1033,7 @@ fun LaunchTipsLoadingOverlay(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
         ) {
-            // GOOFY STICKMAN PHOTOGRAPHER & DONE BURST (Hand-drawn doodle on paper)
+            // GOOFY STICKMAN PHOTOGRAPHER (Hand-drawn doodle on paper)
             Box(
                 modifier = Modifier
                     .size(width = 250.dp, height = 220.dp)
@@ -1043,18 +1043,8 @@ fun LaunchTipsLoadingOverlay(
                 Image(
                     painter = painterResource(id = stickmanDrawables[characterFrameIndex.coerceIn(0, 15)]),
                     contentDescription = "Goofy Stickman Photographer",
-                    modifier = Modifier.size(if (isDone) 160.dp else 190.dp)
+                    modifier = Modifier.size(if (isDone) 200.dp else 190.dp)
                 )
-
-                if (isDone) {
-                    Image(
-                        painter = painterResource(id = R.drawable.fx_done),
-                        contentDescription = "Done!",
-                        modifier = Modifier
-                            .size(90.dp)
-                            .align(Alignment.TopEnd)
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -1070,9 +1060,9 @@ fun LaunchTipsLoadingOverlay(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // CRAYON LOADING BAR SPRITE (00 to 17, bigger display size)
+            // CRAYON LOADING BAR SPRITE (00 to 16, bigger display size)
             Image(
-                painter = painterResource(id = loadingBarDrawables[barFrameIndex.coerceIn(0, 17)]),
+                painter = painterResource(id = loadingBarDrawables[barFrameIndex.coerceIn(0, 16)]),
                 contentDescription = "Loading bar",
                 modifier = Modifier
                     .width(320.dp)
