@@ -103,6 +103,11 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -1701,6 +1706,18 @@ fun ShotCertificationDialog(
 ) {
     val context = LocalContext.current
     var showCertificateView by remember { mutableStateOf(true) }
+    var isLinkedInExpanded by remember { mutableStateOf(false) }
+    var currentLinkedInCaption by remember {
+        val pErr = abs(result.actualPitch - result.target.targetPitch)
+        mutableStateOf(
+            RoastsRepository.selectBestLinkedInPost(
+                accuracy = result.accuracy,
+                grade = result.grade,
+                mode = result.mode,
+                pitchErr = pErr
+            )
+        )
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1863,9 +1880,9 @@ fun ShotCertificationDialog(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = "SAVAGE AUDIT VERDICT 🔥",
+                                text = "The Verdict",
                                 color = Color(0xFFFF8A80),
-                                fontSize = 10.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 1.sp
                             )
@@ -1887,35 +1904,123 @@ fun ShotCertificationDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Dedicated Share to LinkedIn with tailored viral description
-                    Button(
-                        onClick = {
-                            val pErr = abs(result.actualPitch - result.target.targetPitch)
-                            val caption = RoastsRepository.selectBestLinkedInPost(
-                                accuracy = result.accuracy,
-                                grade = result.grade,
-                                mode = result.mode,
-                                pitchErr = pErr
-                            )
-                            shareToLinkedIn(context, if (showCertificateView) result.certUri else result.photoUri, caption)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF0A66C2),
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(14.dp),
+                    // Dedicated Share to LinkedIn with tailored viral description & Expand/Shuffle option
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFF10141E))
+                            .border(BorderStroke(1.dp, Color(0xFF0A66C2).copy(alpha = 0.45f)), RoundedCornerShape(14.dp))
                     ) {
-                        Text(
-                            text = "in",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Share to LinkedIn (Auto-Caption)", fontWeight = FontWeight.Bold)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .background(Color(0xFF0A66C2)),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = {
+                                    shareToLinkedIn(context, if (showCertificateView) result.certUri else result.photoUri, currentLinkedInCaption)
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Transparent,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(0.dp),
+                                modifier = Modifier.weight(1f).fillMaxSize()
+                            ) {
+                                Text(
+                                    text = "in",
+                                    color = Color.White,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = "Share to LinkedIn", fontWeight = FontWeight.Bold)
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .width(1.dp)
+                                    .height(24.dp)
+                                    .background(Color.White.copy(alpha = 0.3f))
+                            )
+
+                            IconButton(
+                                onClick = { isLinkedInExpanded = !isLinkedInExpanded },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isLinkedInExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                    contentDescription = "Expand description",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+
+                        if (isLinkedInExpanded) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "THOUGHT LEADERSHIP POST (${RoastsRepository.LINKEDIN_PARODY_POSTS.size} available)",
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(Color(0xFF00E676).copy(alpha = 0.15f))
+                                            .clickable {
+                                                currentLinkedInCaption = RoastsRepository.LINKEDIN_PARODY_POSTS.random()
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Refresh,
+                                            contentDescription = "Shuffle",
+                                            tint = Color(0xFF00E676),
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Shuffle",
+                                            color = Color(0xFF00E676),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                BasicTextField(
+                                    value = currentLinkedInCaption,
+                                    onValueChange = { currentLinkedInCaption = it },
+                                    textStyle = TextStyle(
+                                        color = Color.White.copy(alpha = 0.95f),
+                                        fontSize = 12.sp,
+                                        lineHeight = 17.sp
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFF0C0E14), RoundedCornerShape(8.dp))
+                                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)), RoundedCornerShape(8.dp))
+                                        .padding(10.dp)
+                                        .heightIn(min = 80.dp, max = 180.dp)
+                                        .verticalScroll(rememberScrollState())
+                                )
+                            }
+                        }
                     }
 
                     Row(
@@ -2264,9 +2369,9 @@ fun createCertificateBitmap(
         textAlign = Paint.Align.CENTER
         letterSpacing = 0.12f
     }
-    canvas.drawText("[!] SENSOR AUDIT VERDICT", cardWidth / 2f, 852f, roastTagPaint)
+    canvas.drawText("The Verdict", cardWidth / 2f, 856f, roastTagPaint)
 
-    // Multi-line bold roast text wrapped with StaticLayout
+    // Multi-line bold roast text wrapped with StaticLayout, centered horizontally and vertically
     val roastTextPaint = TextPaint().apply {
         color = AndroidColor.WHITE
         textSize = 25f
@@ -2287,17 +2392,13 @@ fun createCertificateBitmap(
     }
 
     canvas.save()
-    val textY = 865f + (55f - (staticLayout.height / 2f)).coerceAtLeast(0f)
+    // Vertically center the quote cleanly inside the remaining space below 'The Verdict'
+    val availableTop = 872f
+    val availableBottom = roastRect.bottom - 12f
+    val textY = availableTop + ((availableBottom - availableTop - staticLayout.height) / 2f).coerceAtLeast(0f)
     canvas.translate(cardWidth / 2f, textY)
     staticLayout.draw(canvas)
     canvas.restore()
-
-    val roastFooterPaint = Paint().apply {
-        color = AndroidColor.parseColor("#FFAB91")
-        textSize = 14f
-        textAlign = Paint.Align.CENTER
-    }
-    canvas.drawText("RAGEBAIT ACTIVATED • GRADE: $grade", cardWidth / 2f, 955f, roastFooterPaint)
 
     // 5. Single Unified Sensor Breakdown Bar (No nested boxes)
     val sRect = RectF(60f, 1005f, cardWidth - 60f, 1260f)
