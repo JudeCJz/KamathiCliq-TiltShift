@@ -20,6 +20,9 @@ import android.hardware.SensorManager
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -1739,13 +1742,13 @@ fun ShotCertificationDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Image Display
+                // Image Display (Certificate rendered cleanly without nested card clutter)
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(if (showCertificateView) 0.675f else 1.33f)
+                        .aspectRatio(if (showCertificateView) 0.75f else 1.33f)
                 ) {
                     val displayBmp = if (showCertificateView) result.certBitmap else result.photoBitmap
                     Image(
@@ -1755,76 +1758,79 @@ fun ShotCertificationDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // Show separate score & roast cards ONLY when looking at raw photo (certificate already contains them)
+                if (!showCertificateView) {
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                // Accuracy Rating Bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(result.mode.accentColor.copy(alpha = 0.15f))
-                        .border(BorderStroke(1.dp, result.mode.accentColor.copy(alpha = 0.35f)), RoundedCornerShape(14.dp))
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "ACCURACY SCORE",
-                            color = result.mode.accentColor,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 1.sp
-                        )
-                        Text(
-                            text = "${String.format(Locale.US, "%.1f", result.accuracy)}%",
-                            color = Color.White,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = result.mode.accentColor
+                    // Accuracy Rating Bar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(result.mode.accentColor.copy(alpha = 0.15f))
+                            .border(BorderStroke(1.dp, result.mode.accentColor.copy(alpha = 0.35f)), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = result.grade,
-                            color = Color.Black,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Black,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
+                        Column {
+                            Text(
+                                text = "ACCURACY SCORE",
+                                color = result.mode.accentColor,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "${String.format(Locale.US, "%.1f", result.accuracy)}%",
+                                color = Color.White,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = result.mode.accentColor
+                        ) {
+                            Text(
+                                text = result.grade,
+                                color = Color.Black,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Savage Roast Box
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF231E24),
+                        border = BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.4f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "SAVAGE AUDIT VERDICT 🔥",
+                                color = Color(0xFFFF8A80),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = result.roast,
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Savage Roast Box
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF231E24),
-                    border = BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.4f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = "SAVAGE AUDIT VERDICT 🔥",
-                            color = Color(0xFFFF8A80),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = result.roast,
-                            color = Color.White.copy(alpha = 0.9f),
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Action Buttons: Share & Dismiss
                 Row(
@@ -2025,195 +2031,258 @@ fun createCertificateBitmap(
     roast: String
 ): Bitmap {
     val cardWidth = 1080
-    val cardHeight = 1600
+    val cardHeight = 1440
     val output = Bitmap.createBitmap(cardWidth, cardHeight, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(output)
 
-    // 1. Dark Slate Card Background
-    val bgPaint = Paint().apply { color = AndroidColor.parseColor("#101216") }
+    val accentColorInt = AndroidColor.parseColor(
+        if (mode == CameraMode.PEAK) "#FFD54F" else if (mode == CameraMode.PRO) "#00E5FF" else "#00E676"
+    )
+
+    // 1. Dark Obsidian Card Background
+    val bgPaint = Paint().apply { color = AndroidColor.parseColor("#0D1117") }
     canvas.drawRect(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(), bgPaint)
 
-    // Outer double border
+    // Classic Certificate Border (Single Outer Frame with corner notches)
     val borderPaint = Paint().apply {
         style = Paint.Style.STROKE
-        strokeWidth = 6f
-        color = AndroidColor.parseColor(if (mode == CameraMode.PEAK) "#FFD54F" else if (mode == CameraMode.PRO) "#00E5FF" else "#00E676")
+        strokeWidth = 3f
+        color = accentColorInt
     }
-    canvas.drawRoundRect(RectF(32f, 32f, cardWidth - 32f, cardHeight - 32f), 36f, 36f, borderPaint)
+    canvas.drawRect(28f, 28f, cardWidth - 28f, cardHeight - 28f, borderPaint)
 
-    val innerBorderPaint = Paint().apply {
+    val innerLinePaint = Paint().apply {
         style = Paint.Style.STROKE
-        strokeWidth = 2f
-        color = AndroidColor.parseColor("#33FFFFFF")
+        strokeWidth = 1f
+        color = AndroidColor.parseColor("#21262D")
     }
-    canvas.drawRoundRect(RectF(48f, 48f, cardWidth - 48f, cardHeight - 48f), 24f, 24f, innerBorderPaint)
+    canvas.drawRect(36f, 36f, cardWidth - 36f, cardHeight - 36f, innerLinePaint)
 
-    // 2. Title & Header
-    val headerPaint = Paint().apply {
+    // Corner decorative brackets
+    val cornerPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 5f
+        color = accentColorInt
+    }
+    val r = 24f
+    for (cx in listOf(28f, cardWidth - 28f)) {
+        for (cy in listOf(28f, cardHeight - 28f)) {
+            val sx = if (cx == 28f) 1f else -1f
+            val sy = if (cy == 28f) 1f else -1f
+            canvas.drawLine(cx, cy, cx + sx * r * 2, cy, cornerPaint)
+            canvas.drawLine(cx, cy, cx, cy + sy * r * 2, cornerPaint)
+        }
+    }
+
+    // 2. Header Emblem & Titles
+    val tagPaint = Paint().apply {
+        color = accentColorInt
+        textSize = 18f
+        isFakeBoldText = true
+        textAlign = Paint.Align.CENTER
+        letterSpacing = 0.14f
+    }
+    canvas.drawText("★ TILTSHIFT* OFFICIAL SENSOR AUDIT ★", cardWidth / 2f, 68f, tagPaint)
+
+    val titlePaint = Paint().apply {
         color = AndroidColor.WHITE
-        textSize = 42f
+        textSize = 38f
         isFakeBoldText = true
         textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
     }
-    canvas.drawText("TILTSHIFT* AUDIT VERIFICATION", cardWidth / 2f, 125f, headerPaint)
+    canvas.drawText("CERTIFICATE OF CONFORMITY", cardWidth / 2f, 115f, titlePaint)
 
-    val subHeaderPaint = Paint().apply {
-        color = AndroidColor.parseColor("#90CAF9")
-        textSize = 23f
+    val subTitlePaint = Paint().apply {
+        color = AndroidColor.parseColor("#8B949E")
+        textSize = 18f
         textAlign = Paint.Align.CENTER
-        letterSpacing = 0.12f
     }
-    canvas.drawText("OFFICIAL SHOT CERTIFICATE & SENSOR AUDIT", cardWidth / 2f, 168f, subHeaderPaint)
+    canvas.drawText("Official Proof of Hardware Sensor Alignment & Spatial Discipline", cardWidth / 2f, 155f, subTitlePaint)
 
     // 3. Embedded Photo Box
-    val photoDest = RectF(72f, 205f, cardWidth - 72f, 850f)
+    val photoDest = RectF(60f, 190f, cardWidth - 60f, 780f)
     val photoFramePaint = Paint().apply {
-        color = AndroidColor.BLACK
+        color = AndroidColor.parseColor("#161B22")
         style = Paint.Style.FILL
     }
-    canvas.drawRoundRect(photoDest, 20f, 20f, photoFramePaint)
+    canvas.drawRect(photoDest, photoFramePaint)
 
     val srcRect = Rect(0, 0, photoBitmap.width, photoBitmap.height)
     canvas.drawBitmap(photoBitmap, srcRect, photoDest, Paint(Paint.FILTER_BITMAP_FLAG))
 
     val photoOutlinePaint = Paint().apply {
         style = Paint.Style.STROKE
-        strokeWidth = 3f
-        color = AndroidColor.parseColor("#55FFFFFF")
+        strokeWidth = 2f
+        color = AndroidColor.parseColor("#30363D")
     }
-    canvas.drawRoundRect(photoDest, 20f, 20f, photoOutlinePaint)
+    canvas.drawRect(photoDest, photoOutlinePaint)
 
-    // 4. Accuracy & Grade Badge
-    val badgeBgPaint = Paint().apply {
-        color = AndroidColor.parseColor("#1E212B")
+    // Corner notches on photo
+    for (px in listOf(photoDest.left, photoDest.right)) {
+        for (py in listOf(photoDest.top, photoDest.bottom)) {
+            val sx = if (px == photoDest.left) 1f else -1f
+            val sy = if (py == photoDest.top) 1f else -1f
+            canvas.drawLine(px, py, px + sx * 16f, py, cornerPaint)
+            canvas.drawLine(px, py, px, py + sy * 16f, cornerPaint)
+        }
+    }
+
+    // 4. NOTICEABLE SAVAGE ROAST CALLOUT (Directly under photo)
+    val roastRect = RectF(60f, 805f, cardWidth - 60f, 980f)
+    val roastBgPaint = Paint().apply {
+        color = AndroidColor.parseColor("#1A0E12")
         style = Paint.Style.FILL
     }
-    val badgeRect = RectF(72f, 880f, cardWidth - 72f, 985f)
-    canvas.drawRoundRect(badgeRect, 18f, 18f, badgeBgPaint)
+    canvas.drawRoundRect(roastRect, 16f, 16f, roastBgPaint)
 
-    val scoreLabelPaint = Paint().apply {
-        color = AndroidColor.parseColor("#AAAAAA")
-        textSize = 20f
-        typeface = Typeface.DEFAULT
+    val roastBorderPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2.5f
+        color = AndroidColor.parseColor("#FF5252")
     }
-    canvas.drawText("ACCURACY RATING", 104f, 920f, scoreLabelPaint)
+    canvas.drawRoundRect(roastRect, 16f, 16f, roastBorderPaint)
 
-    val scoreValuePaint = Paint().apply {
-        color = AndroidColor.WHITE
-        textSize = 44f
+    val roastTagPaint = Paint().apply {
+        color = AndroidColor.parseColor("#FF8A80")
+        textSize = 18f
         isFakeBoldText = true
+        textAlign = Paint.Align.CENTER
+        letterSpacing = 0.1f
     }
-    canvas.drawText("${String.format(Locale.US, "%.1f", accuracy)}%", 104f, 970f, scoreValuePaint)
+    canvas.drawText("🔥 SENSOR AUDIT VERDICT 🔥", cardWidth / 2f, 840f, roastTagPaint)
 
-    val gradeBadgePaint = Paint().apply {
-        color = borderPaint.color
-        style = Paint.Style.FILL
-    }
-    val gradeRect = RectF(cardWidth - 360f, 900f, cardWidth - 100f, 970f)
-    canvas.drawRoundRect(gradeRect, 16f, 16f, gradeBadgePaint)
-
-    val gradeTextPaint = Paint().apply {
-        color = AndroidColor.BLACK
-        textSize = 28f
+    // Multi-line bold roast text wrapped with StaticLayout
+    val roastTextPaint = TextPaint().apply {
+        color = AndroidColor.WHITE
+        textSize = 25f
         isFakeBoldText = true
         textAlign = Paint.Align.CENTER
     }
-    canvas.drawText(grade, gradeRect.centerX(), gradeRect.centerY() + 10f, gradeTextPaint)
-
-    // 5. Sensor Audit Table
-    var rowY = 1015f
-    val rowHeight = 70f
-
-    fun drawAuditRow(label: String, targetStr: String, actualStr: String, deltaStr: String, verified: Boolean) {
-        val rowPaint = Paint().apply {
-            color = AndroidColor.parseColor("#191C24")
-            style = Paint.Style.FILL
-        }
-        val rRect = RectF(72f, rowY, cardWidth - 72f, rowY + rowHeight)
-        canvas.drawRoundRect(rRect, 12f, 12f, rowPaint)
-
-        val labelP = Paint().apply {
-            color = AndroidColor.WHITE
-            textSize = 24f
-            isFakeBoldText = true
-        }
-        canvas.drawText(label, 96f, rowY + 44f, labelP)
-
-        val valP = Paint().apply {
-            color = AndroidColor.parseColor("#B0BEC5")
-            textSize = 21f
-        }
-        canvas.drawText("Target: $targetStr   Actual: $actualStr ($deltaStr)", 280f, rowY + 44f, valP)
-
-        val statusP = Paint().apply {
-            color = if (verified) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FF5252")
-            textSize = 22f
-            isFakeBoldText = true
-            textAlign = Paint.Align.RIGHT
-        }
-        canvas.drawText(if (verified) "LOCKED" else "FREE", cardWidth - 96f, rowY + 44f, statusP)
-
-        rowY += rowHeight + 12f
+    val wrappedRoast = "\"$roast\""
+    val maxTextWidth = (roastRect.width() - 48f).toInt()
+    val staticLayout = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        StaticLayout.Builder.obtain(wrappedRoast, 0, wrappedRoast.length, roastTextPaint, maxTextWidth)
+            .setAlignment(Layout.Alignment.ALIGN_CENTER)
+            .setLineSpacing(4f, 1.15f)
+            .setIncludePad(false)
+            .build()
+    } else {
+        @Suppress("DEPRECATION")
+        StaticLayout(wrappedRoast, roastTextPaint, maxTextWidth, Layout.Alignment.ALIGN_CENTER, 1.15f, 4f, false)
     }
 
-    // Zoom Row
-    drawAuditRow(
-        label = "ZOOM",
-        targetStr = "${String.format(Locale.US, "%.1f", target.targetZoom)}x",
-        actualStr = "${String.format(Locale.US, "%.1f", actualZoom)}x",
-        deltaStr = "±${String.format(Locale.US, "%.2f", abs(actualZoom - target.targetZoom))}x",
-        verified = abs(actualZoom - target.targetZoom) <= 0.15f
-    )
+    canvas.save()
+    val textY = 865f + (55f - (staticLayout.height / 2f)).coerceAtLeast(0f)
+    canvas.translate(cardWidth / 2f, textY)
+    staticLayout.draw(canvas)
+    canvas.restore()
 
-    // Tilt Angle Row
-    drawAuditRow(
-        label = "LEVEL / TILT",
-        targetStr = "${target.targetPitch.roundToInt()}°",
-        actualStr = "${actualPitch.roundToInt()}°",
-        deltaStr = "±${String.format(Locale.US, "%.1f", abs(actualPitch - target.targetPitch))}°",
-        verified = mode != CameraMode.NORMAL && abs(actualPitch - target.targetPitch) <= 5.0f
-    )
+    val roastFooterPaint = Paint().apply {
+        color = AndroidColor.parseColor("#FFAB91")
+        textSize = 14f
+        textAlign = Paint.Align.CENTER
+    }
+    canvas.drawText("RAGEBAIT ACTIVATED • GRADE: $grade", cardWidth / 2f, 955f, roastFooterPaint)
 
-    // Compass Row
-    drawAuditRow(
-        label = "COMPASS",
-        targetStr = "${target.targetCompass.roundToInt()}°",
-        actualStr = "${actualCompass.roundToInt()}°",
-        deltaStr = "±${abs((actualCompass - target.targetCompass + 540) % 360 - 180).roundToInt()}°",
-        verified = mode == CameraMode.PEAK && abs((actualCompass - target.targetCompass + 540) % 360 - 180) <= 5.5f
-    )
-
-    // 6. Savage Roast Box on Certificate
-    val roastRect = RectF(72f, rowY + 8f, cardWidth - 72f, rowY + 115f)
-    val roastBgPaint = Paint().apply {
-        color = AndroidColor.parseColor("#261B1E")
+    // 5. Single Unified Sensor Breakdown Bar (No nested boxes)
+    val sRect = RectF(60f, 1005f, cardWidth - 60f, 1260f)
+    val sBgPaint = Paint().apply {
+        color = AndroidColor.parseColor("#161B22")
         style = Paint.Style.FILL
     }
-    canvas.drawRoundRect(roastRect, 14f, 14f, roastBgPaint)
+    canvas.drawRoundRect(sRect, 16f, 16f, sBgPaint)
 
-    val roastTitlePaint = Paint().apply {
-        color = AndroidColor.parseColor("#FF8A80")
-        textSize = 20f
-        isFakeBoldText = true
+    val sBorderPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 1f
+        color = AndroidColor.parseColor("#30363D")
     }
-    canvas.drawText("SAVAGE AUDIT VERDICT: ", 96f, rowY + 46f, roastTitlePaint)
+    canvas.drawRoundRect(sRect, 16f, 16f, sBorderPaint)
 
-    val roastContentPaint = Paint().apply {
-        color = AndroidColor.WHITE
-        textSize = 22f
+    // 4 Metric Columns cleanly divided
+    val colW = sRect.width() / 4f
+    val colDivPaint = Paint().apply {
+        color = AndroidColor.parseColor("#21262D")
+        strokeWidth = 2f
     }
-    canvas.drawText(roast, 96f, rowY + 88f, roastContentPaint)
+    for (i in 1..3) {
+        val lx = sRect.left + i * colW
+        canvas.drawLine(lx, sRect.top + 20f, lx, sRect.bottom - 20f, colDivPaint)
+    }
 
-    // 7. Footer
+    val isZoomOk = abs(actualZoom - target.targetZoom) <= 0.15f
+    val isTiltOk = mode != CameraMode.NORMAL && abs(actualPitch - target.targetPitch) <= 5.0f
+    val isHeadingOk = mode == CameraMode.PEAK && abs((actualCompass - target.targetCompass + 540) % 360 - 180) <= 5.5f
+
+    data class CertCol(val title: String, val value: String, val sub: String, val colorInt: Int, val isOk: Boolean)
+    val columns = listOf(
+        CertCol("ACCURACY", "${String.format(Locale.US, "%.1f", accuracy)}%", "GRADE: $grade", AndroidColor.parseColor("#00E676"), true),
+        CertCol("ZOOM", "${String.format(Locale.US, "%.1f", actualZoom)}x", "TARGET: ${String.format(Locale.US, "%.1f", target.targetZoom)}x", if (isZoomOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FFB300"), isZoomOk),
+        CertCol("TILT", "${actualPitch.roundToInt()}°", "TARGET: ${target.targetPitch.roundToInt()}°", if (isTiltOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FF5252"), isTiltOk),
+        CertCol("HEADING", "${actualCompass.roundToInt()}°", "TARGET: ${target.targetCompass.roundToInt()}°", if (isHeadingOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor(if (mode == CameraMode.PEAK) "#FF5252" else "#8B949E"), isHeadingOk)
+    )
+
+    for (i in columns.indices) {
+        val col = columns[i]
+        val cx = sRect.left + i * colW + colW / 2f
+
+        val cTitlePaint = Paint().apply {
+            color = AndroidColor.parseColor("#8B949E")
+            textSize = 16f
+            isFakeBoldText = true
+            textAlign = Paint.Align.CENTER
+        }
+        canvas.drawText(col.title, cx, 1050f, cTitlePaint)
+
+        val cValPaint = Paint().apply {
+            color = col.colorInt
+            textSize = 34f
+            isFakeBoldText = true
+            textAlign = Paint.Align.CENTER
+        }
+        canvas.drawText(col.value, cx, 1125f, cValPaint)
+
+        val cSubPaint = Paint().apply {
+            color = AndroidColor.WHITE
+            textSize = 15f
+            textAlign = Paint.Align.CENTER
+        }
+        canvas.drawText(col.sub, cx, 1180f, cSubPaint)
+
+        val cStatusPaint = Paint().apply {
+            color = col.colorInt
+            textSize = 13f
+            isFakeBoldText = true
+            textAlign = Paint.Align.CENTER
+        }
+        canvas.drawText(if (col.isOk) "LOCKED" else "OFF TARGET", cx, 1220f, cStatusPaint)
+    }
+
+    // 6. Footer & Signatures
     val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(System.currentTimeMillis())
     val footerPaint = Paint().apply {
-        color = AndroidColor.parseColor("#66FFFFFF")
-        textSize = 19f
+        color = AndroidColor.parseColor("#8B949E")
+        textSize = 15f
         textAlign = Paint.Align.CENTER
     }
-    canvas.drawText("MODE: ${mode.displayName.uppercase()}  |  TIMESTAMP: $dateStr", cardWidth / 2f, cardHeight - 80f, footerPaint)
-    canvas.drawText("AUTHENTICATED BY TILTSHIFT* ON-DEVICE HARDWARE SENSORS", cardWidth / 2f, cardHeight - 50f, footerPaint)
+    canvas.drawText("MODE: ${mode.displayName.uppercase()}  |  TIMESTAMP: $dateStr", cardWidth / 2f, 1315f, footerPaint)
+
+    val certSubFooter = Paint().apply {
+        color = AndroidColor.parseColor("#484F58")
+        textSize = 14f
+        textAlign = Paint.Align.CENTER
+    }
+    canvas.drawText("Cryptographically Signed by TiltShift* In-Device IMU Hardware Sensors", cardWidth / 2f, 1345f, certSubFooter)
+
+    val stampPaint = Paint().apply {
+        color = accentColorInt
+        textSize = 14f
+        isFakeBoldText = true
+        textAlign = Paint.Align.CENTER
+        letterSpacing = 0.1f
+    }
+    canvas.drawText("OFFICIAL SHOT ARCHIVE • DO NOT TAMPER", cardWidth / 2f, 1375f, stampPaint)
 
     return output
 }
