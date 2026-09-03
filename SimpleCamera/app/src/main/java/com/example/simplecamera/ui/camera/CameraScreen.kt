@@ -1317,33 +1317,71 @@ fun RequirementItem(
     }
 }
 
-// Compass Icon with N on top and S on bottom
+// Compass Icon with N on top, nautical needle in center, and S on bottom (no overlap)
 @Composable
 fun CompassWithNS(accentColor: Color, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = modifier.size(24.dp),
+        contentAlignment = Alignment.Center
     ) {
+        // Authentic magnetic nautical needle
+        Canvas(modifier = Modifier.size(width = 8.dp, height = 11.dp)) {
+            val w = size.width
+            val h = size.height
+            val midX = w / 2f
+            val midY = h / 2f
+
+            // North pointer (Red)
+            val northRight = Path().apply {
+                moveTo(midX, 0f)
+                lineTo(w, midY)
+                lineTo(midX, midY)
+                close()
+            }
+            drawPath(northRight, color = Color(0xFFFF3B30))
+
+            val northLeft = Path().apply {
+                moveTo(midX, 0f)
+                lineTo(0f, midY)
+                lineTo(midX, midY)
+                close()
+            }
+            drawPath(northLeft, color = Color(0xFFFF6961))
+
+            // South pointer (Light grey / White)
+            val southRight = Path().apply {
+                moveTo(midX, h)
+                lineTo(w, midY)
+                lineTo(midX, midY)
+                close()
+            }
+            drawPath(southRight, color = Color.White.copy(alpha = 0.55f))
+
+            val southLeft = Path().apply {
+                moveTo(midX, h)
+                lineTo(0f, midY)
+                lineTo(midX, midY)
+                close()
+            }
+            drawPath(southLeft, color = Color.White.copy(alpha = 0.85f))
+        }
+
+        // 'N' letter pinned safely near top edge
         Text(
             text = "N",
-            color = if (accentColor == Color.White) Color(0xFFFF5252) else accentColor,
-            fontSize = 6.5.sp,
+            color = Color(0xFFFF3B30),
+            fontSize = 6.sp,
             fontWeight = FontWeight.Black,
-            lineHeight = 7.sp
+            modifier = Modifier.align(Alignment.TopCenter)
         )
-        Icon(
-            imageVector = Icons.Filled.Explore,
-            contentDescription = "Compass",
-            tint = accentColor,
-            modifier = Modifier.size(13.dp)
-        )
+
+        // 'S' letter pinned safely above bottom border
         Text(
             text = "S",
-            color = Color.White.copy(alpha = 0.50f),
-            fontSize = 6.5.sp,
+            color = Color.White.copy(alpha = 0.70f),
+            fontSize = 6.sp,
             fontWeight = FontWeight.Bold,
-            lineHeight = 7.sp
+            modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
 }
