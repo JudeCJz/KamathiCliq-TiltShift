@@ -516,7 +516,7 @@ fun CameraView() {
                 // Difficulty Dropdown (Top Left) - Label "Difficulty ▾" with Green/Red outline based on mode
                 Box {
                     Surface(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = Color.Black.copy(alpha = 0.70f),
                         border = BorderStroke(1.5.dp, currentDifficulty.badgeColor),
                         modifier = Modifier.clickable { showDifficultyMenu = true }
@@ -567,7 +567,7 @@ fun CameraView() {
 
                 // Brand & Mode Badge (Center)
                 Surface(
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = Color.Black.copy(alpha = 0.55f),
                     border = BorderStroke(1.dp, currentMode.accentColor.copy(alpha = 0.35f))
                 ) {
@@ -683,7 +683,7 @@ fun CameraView() {
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = Color(0xFF14151E).copy(alpha = 0.96f),
                     border = BorderStroke(
                         width = 1.5.dp,
@@ -1125,7 +1125,7 @@ fun PuzzleLockStatusHUD(
 
     // ONE Single Sleek Frosted Capsule Box (No nested boxes, reduced padding)
     Surface(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(12.dp),
         color = Color(0xFF0C1322).copy(alpha = 0.65f)
     ) {
         Row(
@@ -1440,7 +1440,7 @@ fun GlassmorphicZoomBar(
 
     // Clean Translucent Capsule with NO Outline and compact padding
     Surface(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(12.dp),
         color = Color(0xFF0C1322).copy(alpha = 0.65f),
         modifier = modifier
     ) {
@@ -1585,7 +1585,7 @@ fun BottomRightModeSelector(
     onModeSelected: (CameraMode) -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(12.dp),
         color = Color.Black.copy(alpha = 0.65f),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.20f))
     ) {
@@ -1607,7 +1607,7 @@ fun BottomRightModeSelector(
 
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .background(backgroundColor)
                         .clickable { onModeSelected(mode) }
                         .padding(horizontal = 10.dp, vertical = 5.dp),
@@ -1904,9 +1904,9 @@ fun ShotCertificationDialog(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFF10141E))
-                            .border(BorderStroke(1.dp, Color(0xFF0A66C2).copy(alpha = 0.45f)), RoundedCornerShape(14.dp))
+                            .border(BorderStroke(1.dp, Color(0xFF0A66C2).copy(alpha = 0.45f)), RoundedCornerShape(12.dp))
                     ) {
                         Row(
                             modifier = Modifier
@@ -2511,7 +2511,7 @@ fun PermissionScreen(onRequestPermission: () -> Unit) {
         ) {
             Surface(
                 modifier = Modifier.size(96.dp),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = Color(0xFF1E1E1E)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -2542,7 +2542,7 @@ fun PermissionScreen(onRequestPermission: () -> Unit) {
             Spacer(modifier = Modifier.height(36.dp))
             Button(
                 onClick = onRequestPermission,
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
                     contentColor = Color.Black
@@ -2706,7 +2706,7 @@ fun UselessPeakturesGallery(
                     tabs.forEachIndexed { index, label ->
                         val isSelected = selectedFilter == index
                         Surface(
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.08f),
                             border = BorderStroke(1.dp, if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.15f)),
                             modifier = Modifier.clickable { selectedFilter = index }
@@ -2818,7 +2818,7 @@ fun PeaktureThumbnailCard(
     }
 
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         color = Color(0xFF141722),
         border = BorderStroke(1.dp, if (item.isCertificate) Color(0xFF00E5FF).copy(alpha = 0.35f) else Color.White.copy(alpha = 0.15f)),
         modifier = Modifier
@@ -2848,7 +2848,7 @@ fun PeaktureThumbnailCard(
 
             // Top Badge
             Surface(
-                shape = RoundedCornerShape(topStart = 14.dp, bottomEnd = 8.dp),
+                shape = RoundedCornerShape(topStart = 12.dp, bottomEnd = 6.dp),
                 color = if (item.isCertificate) Color(0xFF00E5FF).copy(alpha = 0.90f) else Color.Black.copy(alpha = 0.75f),
                 modifier = Modifier.align(Alignment.TopStart)
             ) {
@@ -2969,7 +2969,7 @@ fun PeaktureDetailViewer(
                         containerColor = Color(0xFF0A66C2),
                         contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .weight(1.1f)
                         .height(48.dp)
@@ -2985,7 +2985,7 @@ fun PeaktureDetailViewer(
                         containerColor = Color.White.copy(alpha = 0.20f),
                         contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .weight(0.9f)
                         .height(48.dp)
