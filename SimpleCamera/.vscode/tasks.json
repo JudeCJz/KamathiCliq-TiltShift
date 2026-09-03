@@ -1,0 +1,41 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Android: Build Debug APK",
+      "type": "shell",
+      "command": ".\\gradlew.bat assembleDebug",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$gradle"]
+    },
+    {
+      "label": "Android: Install on Connected Phone",
+      "type": "shell",
+      "command": "adb install -r app/build/outputs/apk/debug/app-debug.apk",
+      "dependsOn": "Android: Build Debug APK",
+      "problemMatcher": []
+    },
+    {
+      "label": "Android: Launch Camera App on Phone",
+      "type": "shell",
+      "command": "adb shell am start -n com.example.simplecamera/.MainActivity",
+      "dependsOn": "Android: Install on Connected Phone",
+      "problemMatcher": []
+    },
+    {
+      "label": "Android: View Connected Devices",
+      "type": "shell",
+      "command": "adb devices -l",
+      "problemMatcher": []
+    },
+    {
+      "label": "Android: View Logcat",
+      "type": "shell",
+      "command": "adb logcat -s SimpleCamera:V",
+      "problemMatcher": []
+    }
+  ]
+}
