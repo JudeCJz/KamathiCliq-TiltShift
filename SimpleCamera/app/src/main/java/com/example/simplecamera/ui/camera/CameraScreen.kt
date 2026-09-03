@@ -1,11 +1,14 @@
 package com.example.simplecamera.ui.camera
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import com.example.simplecamera.data.RoastsRepository
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color as AndroidColor
@@ -206,25 +209,22 @@ fun generateRandomTarget(): ModeTarget {
     return ModeTarget(targetPitch = pitch, targetCompass = compass, targetZoom = zoom)
 }
 
-fun getSavageRoast(mode: CameraMode, pitchErr: Float, compassErr: Float, zoomErr: Float): String {
+fun getCardinalDirection(degrees: Float): String {
+    val normalized = (degrees % 360 + 360) % 360
     return when {
-        mode != CameraMode.NORMAL && pitchErr > 0.5f -> {
-            when {
-                pitchErr > 15f -> "Off by ${pitchErr.roundToInt()}°! Are you trying to photograph the ceiling?!"
-                pitchErr > 10f -> "Are you holding a phone or steering a pirate ship? Off by ${pitchErr.roundToInt()}°!"
-                pitchErr > 6f -> "Off by ${pitchErr.roundToInt()}°! Hands trembling like an earthquake."
-                pitchErr > 3f -> "Missed by ${String.format(Locale.US, "%.1f", pitchErr)}°. My grandma tilts a phone straighter than this."
-                else -> "Crooked by ${String.format(Locale.US, "%.1f", pitchErr)}°. Steady those shaky fingers!"
-            }
-        }
-        zoomErr > 0.05f -> {
-            "Can't dial a zoom slider? Off by ${String.format(Locale.US, "%.2f", zoomErr)}x. It's not rocket science."
-        }
-        mode == CameraMode.PEAK && compassErr > 1.5f -> {
-            "Wrong direction by ${compassErr.roundToInt()}°! Do you even know which way North is?"
-        }
-        else -> "Surprisingly, you didn't butcher this shot. Pure beginners luck."
+        normalized >= 337.5f || normalized < 22.5f -> "N"
+        normalized >= 22.5f && normalized < 67.5f -> "NE"
+        normalized >= 67.5f && normalized < 112.5f -> "E"
+        normalized >= 112.5f && normalized < 157.5f -> "SE"
+        normalized >= 157.5f && normalized < 202.5f -> "S"
+        normalized >= 202.5f && normalized < 247.5f -> "SW"
+        normalized >= 247.5f && normalized < 292.5f -> "W"
+        else -> "NW"
     }
+}
+
+fun getSavageRoast(mode: CameraMode, pitchErr: Float, compassErr: Float, zoomErr: Float): String {
+    return RoastsRepository.generateSavageRoast(mode, pitchErr, compassErr, zoomErr)
 }
 
 @Composable
@@ -662,20 +662,13 @@ fun CameraView() {
                 .padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // HIGH-CONTRAST BOLD & CLEAR LIVE ROAST BANNER
+            // HIGH-CONTRAST BOLD & CLEAR MESSAGE BANNER (No emojis, sleek typography)
             if (currentMode != CameraMode.NORMAL) {
                 val pErr = abs(currentPitch - currentTarget.targetPitch)
                 val isAngleGood = isAngleLocked
 
-                val roastCategory = if (isAngleGood) "✅ ANGLE LOCKED (±5°)" else "🔥 LIVE ROAST"
-                val roastText = when {
-                    isAngleGood -> "Holding steady! Don't breathe, hit the shutter!"
-                    pErr > 18f -> "Off by ${pErr.roundToInt()}°! Are you trying to photograph the ceiling or floor?!"
-                    pErr > 10f -> "Off by ${pErr.roundToInt()}°! Are you steering a pirate ship with that phone?"
-                    pErr > 6f -> "Off by ${pErr.roundToInt()}°! Hands trembling like a 7.0 earthquake."
-                    pErr > 3f -> "Crooked by ${String.format(Locale.US, "%.1f", pErr)}°! My grandma tilts straighter than this."
-                    else -> "Off by ${String.format(Locale.US, "%.1f", pErr)}°! Almost there, hold your hands steady!"
-                }
+                val messageCategory = if (isAngleGood) "ALIGNMENT LOCKED (±5°)" else "YOU HAVE A MESSAGE"
+                val messageText = RoastsRepository.getLiveMessageText(pErr, isAngleGood)
 
                 Surface(
                     shape = RoundedCornerShape(16.dp),
@@ -695,12 +688,15 @@ fun CameraView() {
                         Surface(
                             shape = CircleShape,
                             color = if (isAngleGood) Color(0xFF00E676).copy(alpha = 0.25f) else Color(0xFFFF5252).copy(alpha = 0.25f),
+                            border = BorderStroke(1.dp, if (isAngleGood) Color(0xFF00E676) else Color(0xFFFF5252)),
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = if (isAngleGood) "🎯" else "💀",
-                                    fontSize = 18.sp
+                                    text = if (isAngleGood) "OK" else "!",
+                                    color = if (isAngleGood) Color(0xFF00E676) else Color(0xFFFF5252),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black
                                 )
                             }
                         }
@@ -714,7 +710,7 @@ fun CameraView() {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = roastCategory,
+                                    text = messageCategory,
                                     color = if (isAngleGood) Color(0xFF00E676) else Color(0xFFFF8A80),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Black,
@@ -729,7 +725,7 @@ fun CameraView() {
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = roastText,
+                                text = messageText,
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -1181,7 +1177,7 @@ fun PuzzleLockStatusHUD(
                 )
             }
 
-            // 4. Heading / Compass (Active in Peak mode, with N on top and S on bottom)
+            // 4. Heading / Cardinal Direction (NW, NE, N, S, SW etc.)
             if (mode == CameraMode.PEAK) {
                 Box(
                     modifier = Modifier
@@ -1190,9 +1186,17 @@ fun PuzzleLockStatusHUD(
                         .background(Color.White.copy(alpha = 0.15f))
                 )
 
+                val cardinal = getCardinalDirection(target.targetCompass)
+
                 RequirementItem(
                     icon = { tint ->
-                        CompassWithNS(accentColor = tint)
+                        Text(
+                            text = cardinal,
+                            color = tint,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp
+                        )
                     },
                     label = "Heading",
                     targetValue = "${target.targetCompass.roundToInt()}°",
@@ -1850,46 +1854,97 @@ fun ShotCertificationDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Action Buttons: Share & Dismiss
-                Row(
+                // Action Buttons: Share to LinkedIn & Standard Options
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    // Dedicated Share to LinkedIn with tailored viral description
                     Button(
                         onClick = {
-                            shareImage(context, if (showCertificateView) result.certUri else result.photoUri)
+                            val pErr = abs(result.actualPitch - result.target.targetPitch)
+                            val caption = RoastsRepository.selectBestLinkedInPost(
+                                accuracy = result.accuracy,
+                                grade = result.grade,
+                                mode = result.mode,
+                                pitchErr = pErr
+                            )
+                            shareToLinkedIn(context, if (showCertificateView) result.certUri else result.photoUri, caption)
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = result.mode.accentColor,
-                            contentColor = Color.Black
-                        ),
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                    ) {
-                        Icon(Icons.Filled.Share, contentDescription = "Share", modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Share", fontWeight = FontWeight.Bold)
-                    }
-
-                    Button(
-                        onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White.copy(alpha = 0.15f),
+                            containerColor = Color(0xFF0A66C2),
                             contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .height(48.dp)
                     ) {
-                        Text(text = "Next Target", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = "in",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "Share to LinkedIn (Auto-Caption)", fontWeight = FontWeight.Bold)
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                shareImage(context, if (showCertificateView) result.certUri else result.photoUri)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = result.mode.accentColor,
+                                contentColor = Color.Black
+                            ),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
+                        ) {
+                            Icon(Icons.Filled.Share, contentDescription = "Share", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(text = "Share", fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = onDismiss,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White.copy(alpha = 0.15f),
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
+                        ) {
+                            Text(text = "Next Target", fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }
         }
     }
+}
+
+fun shareToLinkedIn(context: Context, uri: Uri, caption: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+    val clip = ClipData.newPlainText("LinkedIn Post", caption)
+    clipboard?.setPrimaryClip(clip)
+    Toast.makeText(context, "Copied viral LinkedIn post to clipboard!", Toast.LENGTH_LONG).show()
+
+    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "image/jpeg"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_TEXT, caption)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(Intent.createChooser(shareIntent, "Share to LinkedIn"))
 }
 
 fun shareImage(context: Context, uri: Uri) {
@@ -2118,15 +2173,28 @@ fun createCertificateBitmap(
     }
     canvas.drawText("Official Proof of Hardware Sensor Alignment & Spatial Discipline", cardWidth / 2f, 155f, subTitlePaint)
 
-    // 3. Embedded Photo Box
-    val photoDest = RectF(60f, 190f, cardWidth - 60f, 780f)
+    // 3. Embedded Photo Box with Center-Crop (Proper image showcasing without distortion!)
+    val photoDest = RectF(50f, 180f, cardWidth - 50f, 800f)
     val photoFramePaint = Paint().apply {
         color = AndroidColor.parseColor("#161B22")
         style = Paint.Style.FILL
     }
     canvas.drawRect(photoDest, photoFramePaint)
 
-    val srcRect = Rect(0, 0, photoBitmap.width, photoBitmap.height)
+    // Showcase image cleanly in its true aspect ratio without stretching
+    val destAspect = photoDest.width() / photoDest.height()
+    val srcAspect = photoBitmap.width.toFloat() / photoBitmap.height.toFloat()
+
+    val srcRect = if (srcAspect > destAspect) {
+        val cropWidth = (photoBitmap.height * destAspect).toInt()
+        val left = ((photoBitmap.width - cropWidth) / 2).coerceAtLeast(0)
+        Rect(left, 0, (left + cropWidth).coerceAtMost(photoBitmap.width), photoBitmap.height)
+    } else {
+        val cropHeight = (photoBitmap.width / destAspect).toInt()
+        val top = ((photoBitmap.height - cropHeight) / 2).coerceAtLeast(0)
+        Rect(0, top, photoBitmap.width, (top + cropHeight).coerceAtMost(photoBitmap.height))
+    }
+
     canvas.drawBitmap(photoBitmap, srcRect, photoDest, Paint(Paint.FILTER_BITMAP_FLAG))
 
     val photoOutlinePaint = Paint().apply {
@@ -2146,8 +2214,8 @@ fun createCertificateBitmap(
         }
     }
 
-    // 4. NOTICEABLE SAVAGE ROAST CALLOUT (Directly under photo)
-    val roastRect = RectF(60f, 805f, cardWidth - 60f, 980f)
+    // 4. NOTICEABLE SAVAGE ROAST CALLOUT (Directly under photo, clean text, no emojis)
+    val roastRect = RectF(50f, 820f, cardWidth - 50f, 985f)
     val roastBgPaint = Paint().apply {
         color = AndroidColor.parseColor("#1A0E12")
         style = Paint.Style.FILL
@@ -2163,12 +2231,12 @@ fun createCertificateBitmap(
 
     val roastTagPaint = Paint().apply {
         color = AndroidColor.parseColor("#FF8A80")
-        textSize = 18f
+        textSize = 17f
         isFakeBoldText = true
         textAlign = Paint.Align.CENTER
-        letterSpacing = 0.1f
+        letterSpacing = 0.12f
     }
-    canvas.drawText("🔥 SENSOR AUDIT VERDICT 🔥", cardWidth / 2f, 840f, roastTagPaint)
+    canvas.drawText("[!] SENSOR AUDIT VERDICT", cardWidth / 2f, 852f, roastTagPaint)
 
     // Multi-line bold roast text wrapped with StaticLayout
     val roastTextPaint = TextPaint().apply {
@@ -2788,29 +2856,48 @@ fun PeaktureDetailViewer(
                 }
             }
 
-            // Bottom Action Bar: Share
+            // Bottom Action Bar: Share & LinkedIn
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))))
-                    .padding(20.dp),
-                horizontalArrangement = Arrangement.Center
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
-                    onClick = { shareImage(context, peakture.uri) },
+                    onClick = {
+                        val caption = RoastsRepository.LINKEDIN_PARODY_POSTS.random()
+                        shareToLinkedIn(context, peakture.uri, caption)
+                    },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF00E5FF),
-                        contentColor = Color.Black
+                        containerColor = Color(0xFF0A66C2),
+                        contentColor = Color.White
                     ),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
-                        .fillMaxWidth(0.7f)
+                        .weight(1.1f)
+                        .height(48.dp)
+                ) {
+                    Text(text = "in", fontWeight = FontWeight.Black, fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(text = "LinkedIn Post", fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = { shareImage(context, peakture.uri) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White.copy(alpha = 0.20f),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .weight(0.9f)
                         .height(48.dp)
                 ) {
                     Icon(Icons.Filled.Share, contentDescription = "Share", modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Share Peakture", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(text = "Share", fontWeight = FontWeight.Bold)
                 }
             }
         }
