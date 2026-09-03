@@ -457,20 +457,22 @@ fun CameraView() {
             modifier = Modifier.fillMaxSize()
         )
 
-        // Live Leveling Overlay: Under the HUD (Enabled ONLY in Baby Mode)
+        // Baby Mode Full Screen Alignment & Directional Assists
         if (isCameraReady && currentDifficulty.showLevelHelper && (currentMode == CameraMode.PRO || currentMode == CameraMode.PEAK)) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .offset(y = (-20).dp)
-            ) {
-                LiveSpiritLevel(
-                    currentPitch = currentPitch,
-                    targetPitch = currentTarget.targetPitch,
-                    isLocked = isAngleLocked,
-                    accentColor = currentMode.accentColor
-                )
-            }
+            BabyModeAssistOverlay(
+                currentPitch = currentPitch,
+                targetPitch = currentTarget.targetPitch,
+                currentCompass = currentCompass,
+                targetCompass = currentTarget.targetCompass,
+                compassSector = getCardinalDirection(currentTarget.targetCompass),
+                currentZoom = currentZoomRatio,
+                targetZoom = currentTarget.targetZoom,
+                currentMode = currentMode,
+                isAngleLocked = isAngleLocked,
+                isCompassLocked = isCompassLocked,
+                isZoomLocked = isZoomLocked,
+                isShutterUnlocked = isShutterUnlocked
+            )
         }
 
         // Tap-to-Focus Reticle
@@ -868,58 +870,354 @@ fun CameraView() {
     }
 }
 
-// Live Spirit Level Indicator (Bullseye Level Tool) placed under the HUD
+// -------------------------------------------------------------
+// BABY MODE COMPLETE ON-SCREEN ALIGNMENT ASSISTS
+// -------------------------------------------------------------
 @Composable
-fun LiveSpiritLevel(
+fun BabyModeAssistOverlay(
     currentPitch: Float,
     targetPitch: Float,
-    isLocked: Boolean,
-    accentColor: Color,
-    modifier: Modifier = Modifier
+    currentCompass: Float,
+    targetCompass: Float,
+    compassSector: String,
+    currentZoom: Float,
+    targetZoom: Float,
+    currentMode: CameraMode,
+    isAngleLocked: Boolean,
+    isCompassLocked: Boolean,
+    isZoomLocked: Boolean,
+    isShutterUnlocked: Boolean
 ) {
-    val deltaPitch = (currentPitch - targetPitch).coerceIn(-15f, 15f)
-    val bubbleOffsetY = (deltaPitch / 15f) * 34.dp.value
+    val angleTolerance = 5.0f
+    val compassTolerance = 5.5f
 
-    Box(
-        modifier = modifier
-            .size(94.dp)
-            .border(
-                width = 2.dp,
-                color = if (isLocked) accentColor else Color.White.copy(alpha = 0.35f),
-                shape = CircleShape
-            )
-            .background(Color.Black.copy(alpha = 0.45f), shape = CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        // Target center ring (±5 deg zone)
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .border(
-                    width = 1.5.dp,
-                    color = if (isLocked) accentColor else Color.White.copy(alpha = 0.40f),
-                    shape = CircleShape
-                )
-        )
+    // Pitch delta: positive means target is higher (tilt backward/up), negative means tilt forward/down
+    val pitchDelta = targetPitch - currentPitch
+    val pitchNeedsUp = pitchDelta > angleTolerance
+    val pitchNeedsDown = pitchDelta < -angleTolerance
 
-        // Crosshairs
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val stroke = 1.dp.toPx()
-            val col = if (isLocked) accentColor.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.25f)
-            drawLine(col, Offset(0f, size.height / 2f), Offset(size.width * 0.25f, size.height / 2f), stroke)
-            drawLine(col, Offset(size.width * 0.75f, size.height / 2f), Offset(size.width, size.height / 2f), stroke)
-            drawLine(col, Offset(size.width / 2f, 0f), Offset(size.width / 2f, size.height * 0.25f), stroke)
-            drawLine(col, Offset(size.width / 2f, size.height * 0.75f), Offset(size.width / 2f, size.height), stroke)
+    // Raw compass delta: positive means target is to the right (turn right), negative means turn left
+    val rawCompassDiff = (targetCompass - currentCompass + 540) % 360 - 180
+    val compassNeedsLeft = (currentMode == CameraMode.PEAK) && (rawCompassDiff < -compassTolerance)
+    val compassNeedsRight = (currentMode == CameraMode.PEAK) && (rawCompassDiff > compassTolerance)
+
+    // Pulsing animation for directional guidance
+    val infiniteTransition = rememberInfiniteTransition(label = "babyModeBounce")
+    val bounceOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bounce"
+    )
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(700),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glow"
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 1. TOP DIRECTIONAL ASSIST: TILT UP / BACK
+        if (pitchNeedsUp) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (175 + bounceOffset).dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.Black.copy(alpha = 0.75f),
+                    border = BorderStroke(1.5.dp, Color(0xFFFFB300).copy(alpha = glowAlpha))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "▲",
+                            color = Color(0xFFFFB300),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "TILT UP / BACK: ${pitchDelta.toInt()}°",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = "▲",
+                            color = Color(0xFFFFB300),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
         }
 
-        // Moving Spirit Level Bubble
+        // 2. BOTTOM DIRECTIONAL ASSIST: TILT DOWN / FORWARD
+        if (pitchNeedsDown) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = (-195 - bounceOffset).dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.Black.copy(alpha = 0.75f),
+                    border = BorderStroke(1.5.dp, Color(0xFFFFB300).copy(alpha = glowAlpha))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "▼",
+                            color = Color(0xFFFFB300),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "TILT DOWN / FORWARD: ${abs(pitchDelta).toInt()}°",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = "▼",
+                            color = Color(0xFFFFB300),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
+        }
+
+        // 3. LEFT DIRECTIONAL ASSIST: TURN LEFT (PEAK mode)
+        if (compassNeedsLeft) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 12.dp)
+                    .offset(x = (-bounceOffset).dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.Black.copy(alpha = 0.75f),
+                    border = BorderStroke(1.5.dp, Color(0xFF00E5FF).copy(alpha = glowAlpha))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "◀",
+                            color = Color(0xFF00E5FF),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "TURN LEFT",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${abs(rawCompassDiff).toInt()}°",
+                            color = Color(0xFF00E5FF),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
+        }
+
+        // 4. RIGHT DIRECTIONAL ASSIST: TURN RIGHT (PEAK mode)
+        if (compassNeedsRight) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 12.dp)
+                    .offset(x = bounceOffset.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.Black.copy(alpha = 0.75f),
+                    border = BorderStroke(1.5.dp, Color(0xFF00E5FF).copy(alpha = glowAlpha))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "▶",
+                            color = Color(0xFF00E5FF),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "TURN RIGHT",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${rawCompassDiff.toInt()}°",
+                            color = Color(0xFF00E5FF),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
+        }
+
+        // 5. CENTER VIEWING GIMBAL / LEVEL RETICLE (Interactive 2D Guide)
         Box(
             modifier = Modifier
-                .offset(y = bubbleOffsetY.dp)
-                .size(18.dp)
-                .clip(CircleShape)
-                .background(if (isLocked) accentColor else Color(0xFFFF5252))
-        )
+                .align(Alignment.Center)
+                .offset(y = (-20).dp),
+            contentAlignment = Alignment.Center
+        ) {
+            val clampedPitch = pitchDelta.coerceIn(-20f, 20f)
+            val clampedYaw = if (currentMode == CameraMode.PEAK) rawCompassDiff.coerceIn(-25f, 25f) else 0f
+            val bubbleOffsetX = (clampedYaw / 25f) * 36.dp.value
+            val bubbleOffsetY = (-clampedPitch / 20f) * 36.dp.value
+            val isGimbalLocked = isAngleLocked && (currentMode != CameraMode.PEAK || isCompassLocked)
+
+            // Outer ring
+            Box(
+                modifier = Modifier
+                    .size(110.dp)
+                    .border(
+                        width = 2.dp,
+                        color = if (isGimbalLocked) Color(0xFF00E676) else Color.White.copy(alpha = 0.35f),
+                        shape = CircleShape
+                    )
+                    .background(Color.Black.copy(alpha = 0.40f), shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                // Target Bullseye ring (Zone where user wants to put the bubble)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .border(
+                            width = 2.dp,
+                            color = if (isGimbalLocked) Color(0xFF00E676) else Color.White.copy(alpha = 0.50f),
+                            shape = CircleShape
+                        )
+                )
+
+                // Reticle Crosshairs & Direction Vector Line
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val stroke = 1.dp.toPx()
+                    val col = if (isGimbalLocked) Color(0xFF00E676).copy(alpha = 0.8f) else Color.White.copy(alpha = 0.25f)
+                    val center = Offset(size.width / 2f, size.height / 2f)
+
+                    // Crosshairs
+                    drawLine(col, Offset(0f, center.y), Offset(size.width * 0.28f, center.y), stroke)
+                    drawLine(col, Offset(size.width * 0.72f, center.y), Offset(size.width, center.y), stroke)
+                    drawLine(col, Offset(center.x, 0f), Offset(center.x, size.height * 0.28f), stroke)
+                    drawLine(col, Offset(center.x, size.height * 0.72f), Offset(center.x, size.height), stroke)
+
+                    // Connecting guide vector if not locked
+                    if (!isGimbalLocked) {
+                        val bubblePx = Offset(center.x + bubbleOffsetX.dp.toPx(), center.y + bubbleOffsetY.dp.toPx())
+                        drawLine(
+                            color = Color(0xFFFFB300).copy(alpha = 0.6f),
+                            start = center,
+                            end = bubblePx,
+                            strokeWidth = 1.5.dp.toPx()
+                        )
+                    }
+                }
+
+                // Moving Target Bubble
+                Box(
+                    modifier = Modifier
+                        .offset(x = bubbleOffsetX.dp, y = bubbleOffsetY.dp)
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(if (isGimbalLocked) Color(0xFF00E676) else Color(0xFFFF5252))
+                        .border(1.5.dp, Color.White, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isGimbalLocked) {
+                        Text(
+                            text = "✓",
+                            color = Color.Black,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
+
+            // 6. FLOATING LIVE CONTEXT GUIDANCE PILL (Directly beneath Gimbal)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = 80.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isShutterUnlocked) Color(0xFF00E676) else Color.Black.copy(alpha = 0.80f),
+                    border = BorderStroke(
+                        1.5.dp,
+                        if (isShutterUnlocked) Color.White else Color.White.copy(alpha = 0.25f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (isShutterUnlocked) {
+                            Text(
+                                text = "🎯 PERFECT! TAP SHUTTER TO SHOOT! 🎯",
+                                color = Color.Black,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        } else if (!isAngleLocked) {
+                            Text(
+                                text = if (pitchDelta > 0) "📱 Tilt back ${pitchDelta.toInt()}°" else "📱 Tilt forward ${abs(pitchDelta).toInt()}°",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else if (currentMode == CameraMode.PEAK && !isCompassLocked) {
+                            Text(
+                                text = if (rawCompassDiff > 0) "🧭 Turn right ${rawCompassDiff.toInt()}° ($compassSector)" else "🧭 Turn left ${abs(rawCompassDiff).toInt()}° ($compassSector)",
+                                color = Color(0xFF00E5FF),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else if (!isZoomLocked) {
+                            Text(
+                                text = "🔍 Adjust zoom to ${String.format("%.1fx", targetZoom)}",
+                                color = Color(0xFFFFB300),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
