@@ -1003,13 +1003,12 @@ fun LaunchTipsLoadingOverlay(
             delay(80)
         }
         while (progress < 100f) {
-            delay(70)
+            delay(60)
             progress = (progress + 6f).coerceAtMost(100f)
         }
         isDone = true
         characterFrameIndex = 15
-        delay(350)
-        delay(850)
+        delay(1200)
         onFinishLoading()
     }
 
@@ -1034,17 +1033,19 @@ fun LaunchTipsLoadingOverlay(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 20.dp)
         ) {
-            // GOOFY STICKMAN PHOTOGRAPHER (Hand-drawn doodle on paper)
+            // GOOFY STICKMAN PHOTOGRAPHER & DONE BURST (Hand-drawn doodle on paper)
             Box(
-                modifier = Modifier.size(width = 220.dp, height = 220.dp),
+                modifier = Modifier
+                    .size(width = 270.dp, height = 240.dp)
+                    .padding(4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(id = stickmanDrawables[characterFrameIndex.coerceIn(0, 15)]),
                     contentDescription = "Goofy Stickman Photographer",
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.size(210.dp)
                 )
 
                 if (isDone) {
@@ -1052,20 +1053,19 @@ fun LaunchTipsLoadingOverlay(
                         painter = painterResource(id = R.drawable.fx_done),
                         contentDescription = "Done!",
                         modifier = Modifier
-                            .size(90.dp)
+                            .size(105.dp)
                             .align(Alignment.TopEnd)
-                            .offset(x = 10.dp, y = (-15).dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Handwritten-style "LOADING..." text
             Text(
                 text = if (isDone) "DONE!" else "LOADING...",
                 color = Color(0xFF1A1A1A),
-                fontSize = 24.sp,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 2.sp
             )
@@ -1077,17 +1077,17 @@ fun LaunchTipsLoadingOverlay(
                 painter = painterResource(id = loadingBarDrawables[barFrameIndex.coerceIn(0, 25)]),
                 contentDescription = "Loading bar",
                 modifier = Modifier
-                    .width(260.dp)
-                    .height(48.dp)
+                    .width(280.dp)
+                    .height(54.dp)
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Comedic Handwritten Message
             Text(
                 text = if (isDone) "Ready to tilt and shoot!" else messages[messageIndex],
                 color = Color(0xFF555555),
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 letterSpacing = 0.5.sp
