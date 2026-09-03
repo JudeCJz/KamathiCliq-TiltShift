@@ -946,9 +946,7 @@ fun LaunchTipsLoadingOverlay(
             R.drawable.loading_bar_04, R.drawable.loading_bar_05, R.drawable.loading_bar_06, R.drawable.loading_bar_07,
             R.drawable.loading_bar_08, R.drawable.loading_bar_09, R.drawable.loading_bar_10, R.drawable.loading_bar_11,
             R.drawable.loading_bar_12, R.drawable.loading_bar_13, R.drawable.loading_bar_14, R.drawable.loading_bar_15,
-            R.drawable.loading_bar_16, R.drawable.loading_bar_17, R.drawable.loading_bar_18, R.drawable.loading_bar_19,
-            R.drawable.loading_bar_20, R.drawable.loading_bar_21, R.drawable.loading_bar_22, R.drawable.loading_bar_23,
-            R.drawable.loading_bar_24, R.drawable.loading_bar_25
+            R.drawable.loading_bar_16, R.drawable.loading_bar_17, R.drawable.loading_bar_18
         )
     }
 
@@ -1014,9 +1012,9 @@ fun LaunchTipsLoadingOverlay(
 
     val barFrameIndex = remember(progress, isDone) {
         if (!isDone) {
-            (progress / 100f * 23f).toInt().coerceIn(0, 23)
+            (progress / 100f * 17f).toInt().coerceIn(0, 17)
         } else {
-            25
+            18
         }
     }
 
@@ -1038,14 +1036,14 @@ fun LaunchTipsLoadingOverlay(
             // GOOFY STICKMAN PHOTOGRAPHER & DONE BURST (Hand-drawn doodle on paper)
             Box(
                 modifier = Modifier
-                    .size(width = 270.dp, height = 240.dp)
+                    .size(width = 250.dp, height = 220.dp)
                     .padding(4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(id = stickmanDrawables[characterFrameIndex.coerceIn(0, 15)]),
                     contentDescription = "Goofy Stickman Photographer",
-                    modifier = Modifier.size(210.dp)
+                    modifier = Modifier.size(if (isDone) 160.dp else 190.dp)
                 )
 
                 if (isDone) {
@@ -1053,13 +1051,13 @@ fun LaunchTipsLoadingOverlay(
                         painter = painterResource(id = R.drawable.fx_done),
                         contentDescription = "Done!",
                         modifier = Modifier
-                            .size(105.dp)
+                            .size(90.dp)
                             .align(Alignment.TopEnd)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Handwritten-style "LOADING..." text
             Text(
@@ -1072,13 +1070,13 @@ fun LaunchTipsLoadingOverlay(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // CRAYON LOADING BAR SPRITE (00 to 25)
+            // CRAYON LOADING BAR SPRITE (00 to 18, bigger display size)
             Image(
-                painter = painterResource(id = loadingBarDrawables[barFrameIndex.coerceIn(0, 25)]),
+                painter = painterResource(id = loadingBarDrawables[barFrameIndex.coerceIn(0, 18)]),
                 contentDescription = "Loading bar",
                 modifier = Modifier
-                    .width(280.dp)
-                    .height(54.dp)
+                    .width(320.dp)
+                    .height(62.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -2129,6 +2127,7 @@ private fun takePhotoWithCertification(
                         val roast = getSavageRoast(mode, pitchErr, compassDiff, zoomErr)
 
                         val certBitmap = createCertificateBitmap(
+                            context = context,
                             photoBitmap = rawBitmap,
                             mode = mode,
                             target = target,
@@ -2173,11 +2172,13 @@ private fun takePhotoWithCertification(
                                         actualZoom = actualZoom
                                     )
                                 )
+                            } else {
+                                onError(ImageCaptureException(ImageCapture.ERROR_UNKNOWN, "Failed to save to gallery", null))
                             }
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(context, "Error saving shot: ${e.message}", Toast.LENGTH_SHORT).show()
+                            onError(ImageCaptureException(ImageCapture.ERROR_UNKNOWN, e.message ?: "Unknown error", e))
                         }
                     }
                 }
@@ -2192,6 +2193,7 @@ private fun takePhotoWithCertification(
 
 // Draw the stylized certification graphic card with savage roast
 fun createCertificateBitmap(
+    context: Context,
     photoBitmap: Bitmap,
     mode: CameraMode,
     target: ModeTarget,
@@ -2254,7 +2256,7 @@ fun createCertificateBitmap(
         textAlign = Paint.Align.CENTER
         letterSpacing = 0.14f
     }
-    canvas.drawText("★ TILTSHIFT* OFFICIAL SENSOR AUDIT ★", cardWidth / 2f, 68f, tagPaint)
+    canvas.drawText("★ TILTSHIFT* CERTIFIED ★", cardWidth / 2f, 68f, tagPaint)
 
     val titlePaint = Paint().apply {
         color = AndroidColor.WHITE
@@ -2302,6 +2304,73 @@ fun createCertificateBitmap(
         color = AndroidColor.parseColor("#30363D")
     }
     canvas.drawRect(photoDest, photoOutlinePaint)
+
+    // Certification Badge ("TILTSHIFT CERTIFIED - EST. 2026 -")
+    // Dynamically placed on the best/brightest spot of the photo so the all-black stamp stands out
+    val badgeBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.badge_certified)
+    if (badgeBitmap != null) {
+        val badgeSize = 145f
+        val pad = 18f
+        val candidateRects = listOf(
+            RectF(photoDest.right - badgeSize - pad, photoDest.top + pad, photoDest.right - pad, photoDest.top + badgeSize + pad),
+            RectF(photoDest.left + pad, photoDest.top + pad, photoDest.left + badgeSize + pad, photoDest.top + badgeSize + pad),
+            RectF(photoDest.right - badgeSize - pad, photoDest.bottom - badgeSize - pad, photoDest.right - pad, photoDest.bottom - pad),
+            RectF(photoDest.left + pad, photoDest.bottom - badgeSize - pad, photoDest.left + badgeSize + pad, photoDest.bottom - pad)
+        )
+
+        var bestRect = candidateRects[0]
+        var maxLuminance = -1.0f
+
+        for (cand in candidateRects) {
+            val relLeft = ((cand.left - photoDest.left) / photoDest.width()).coerceIn(0f, 1f)
+            val relTop = ((cand.top - photoDest.top) / photoDest.height()).coerceIn(0f, 1f)
+            val relRight = ((cand.right - photoDest.left) / photoDest.width()).coerceIn(0f, 1f)
+            val relBottom = ((cand.bottom - photoDest.top) / photoDest.height()).coerceIn(0f, 1f)
+
+            val sLeft = (srcRect.left + relLeft * srcRect.width()).toInt().coerceIn(0, photoBitmap.width - 1)
+            val sTop = (srcRect.top + relTop * srcRect.height()).toInt().coerceIn(0, photoBitmap.height - 1)
+            val sRight = (srcRect.left + relRight * srcRect.width()).toInt().coerceIn(1, photoBitmap.width)
+            val sBottom = (srcRect.top + relBottom * srcRect.height()).toInt().coerceIn(1, photoBitmap.height)
+
+            var totalLum = 0.0
+            var sampleCount = 0
+            val stepX = ((sRight - sLeft) / 8).coerceAtLeast(1)
+            val stepY = ((sBottom - sTop) / 8).coerceAtLeast(1)
+
+            var y = sTop
+            while (y < sBottom) {
+                var x = sLeft
+                while (x < sRight) {
+                    val pixel = photoBitmap.getPixel(x, y)
+                    val r = (pixel shr 16) and 0xFF
+                    val g = (pixel shr 8) and 0xFF
+                    val b = pixel and 0xFF
+                    totalLum += (0.299 * r + 0.587 * g + 0.114 * b)
+                    sampleCount++
+                    x += stepX
+                }
+                y += stepY
+            }
+
+            val avgLum = if (sampleCount > 0) (totalLum / sampleCount).toFloat() else 0f
+            if (avgLum > maxLuminance) {
+                maxLuminance = avgLum
+                bestRect = cand
+            }
+        }
+
+        // Frosted translucent white circular backing to make the black stamp pop if background isn't pure white
+        val backingAlpha = if (maxLuminance > 220f) 50 else if (maxLuminance > 160f) 140 else 220
+        val backingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = AndroidColor.WHITE
+            alpha = backingAlpha
+            style = Paint.Style.FILL
+        }
+        canvas.drawCircle(bestRect.centerX(), bestRect.centerY(), badgeSize * 0.48f, backingPaint)
+
+        // Draw the black certification stamp
+        canvas.drawBitmap(badgeBitmap, null, bestRect, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+    }
 
     // Corner notches on photo
     for (px in listOf(photoDest.left, photoDest.right)) {
