@@ -665,17 +665,24 @@ fun CameraView() {
             // HIGH-CONTRAST BOLD & CLEAR MESSAGE BANNER (No emojis, sleek typography)
             if (currentMode != CameraMode.NORMAL) {
                 val pErr = abs(currentPitch - currentTarget.targetPitch)
-                val isAngleGood = isAngleLocked
+                val isAllMatched = isShutterUnlocked
 
-                val messageCategory = if (isAngleGood) "ALIGNMENT LOCKED (±5°)" else "YOU HAVE A MESSAGE"
-                val messageText = RoastsRepository.getLiveMessageText(pErr, isAngleGood)
+                val messageCategory = if (isAllMatched) "ALIGNMENT LOCKED (±5°)" else "YOU HAVE A MESSAGE"
+                val messageText = if (isAllMatched) {
+                    "Alignment holding steady! Don't tremble, capture now."
+                } else when {
+                    !isAngleLocked -> RoastsRepository.getLiveMessageText(pErr, false)
+                    !isZoomLocked -> "Tilt locked! Now dial the zoom slider (off by ${String.format(Locale.US, "%.1f", abs(currentZoomRatio - currentTarget.targetZoom))}x)!"
+                    currentMode == CameraMode.PEAK && !isCompassLocked -> "Tilt & Zoom locked! Rotate phone to face ${currentTarget.targetCompass.roundToInt()}° (${getCardinalDirection(currentTarget.targetCompass)})!"
+                    else -> "Almost there, steady your hands!"
+                }
 
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Color(0xFF14151E).copy(alpha = 0.96f),
                     border = BorderStroke(
                         width = 1.5.dp,
-                        color = if (isAngleGood) Color(0xFF00E676) else Color(0xFFFF5252)
+                        color = if (isAllMatched) Color(0xFF00E676) else Color(0xFFFF5252)
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -687,14 +694,14 @@ fun CameraView() {
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = if (isAngleGood) Color(0xFF00E676).copy(alpha = 0.25f) else Color(0xFFFF5252).copy(alpha = 0.25f),
-                            border = BorderStroke(1.dp, if (isAngleGood) Color(0xFF00E676) else Color(0xFFFF5252)),
+                            color = if (isAllMatched) Color(0xFF00E676).copy(alpha = 0.25f) else Color(0xFFFF5252).copy(alpha = 0.25f),
+                            border = BorderStroke(1.dp, if (isAllMatched) Color(0xFF00E676) else Color(0xFFFF5252)),
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = if (isAngleGood) "OK" else "!",
-                                    color = if (isAngleGood) Color(0xFF00E676) else Color(0xFFFF5252),
+                                    text = if (isAllMatched) "OK" else "!",
+                                    color = if (isAllMatched) Color(0xFF00E676) else Color(0xFFFF5252),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Black
                                 )
@@ -711,14 +718,14 @@ fun CameraView() {
                             ) {
                                 Text(
                                     text = messageCategory,
-                                    color = if (isAngleGood) Color(0xFF00E676) else Color(0xFFFF8A80),
+                                    color = if (isAllMatched) Color(0xFF00E676) else Color(0xFFFF8A80),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Black,
                                     letterSpacing = 1.sp
                                 )
                                 Text(
-                                    text = if (isAngleGood) "±${String.format(Locale.US, "%.1f", pErr)}° [LOCKED]" else "Off by ${String.format(Locale.US, "%.1f", pErr)}°",
-                                    color = if (isAngleGood) Color(0xFF00E676) else Color(0xFFFF5252),
+                                    text = if (isAllMatched) "[ALL LOCKED]" else "Off by ${String.format(Locale.US, "%.1f", pErr)}°",
+                                    color = if (isAllMatched) Color(0xFF00E676) else Color(0xFFFF5252),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -911,159 +918,175 @@ fun LiveSpiritLevel(
     }
 }
 
-// Full-screen App Launch Loading Screen with Rotating Tips
+// -------------------------------------------------------------
+// TILTSHIFT* SPRITE SHEET DOODLE LOADING SCREEN
+// -------------------------------------------------------------
 @Composable
 fun LaunchTipsLoadingOverlay(
     isCameraReady: Boolean,
     onFinishLoading: () -> Unit
 ) {
-    val tips = listOf(
-        "Tilt your phone to match the target angle within ±5° to unlock the tactile shutter.",
-        "Chad Mode is active by default! The spirit level is hidden — feel the tilt in your wrists.",
-        "Drag the bottom slider to dial into the required zoom magnification.",
-        "Peak Mode demands perfection: Angle, Compass heading, AND Zoom must all align!",
-        "Every shot automatically saves both the raw photo and an authenticated Certificate Card to your Gallery.",
-        "Crooked hands? TiltShift* will brutally roast your photography skills with zero mercy."
-    )
+    val stickmanDrawables = remember {
+        listOf(
+            R.drawable.stickman_01, R.drawable.stickman_02, R.drawable.stickman_03, R.drawable.stickman_04,
+            R.drawable.stickman_05, R.drawable.stickman_06, R.drawable.stickman_07, R.drawable.stickman_08,
+            R.drawable.stickman_09, R.drawable.stickman_10, R.drawable.stickman_11, R.drawable.stickman_12,
+            R.drawable.stickman_13, R.drawable.stickman_14, R.drawable.stickman_15, R.drawable.stickman_16
+        )
+    }
 
-    var tipIndex by remember { mutableIntStateOf(0) }
-    var countdown by remember { mutableIntStateOf(3) }
+    val loadingBarDrawables = remember {
+        listOf(
+            R.drawable.loading_bar_00, R.drawable.loading_bar_01, R.drawable.loading_bar_02, R.drawable.loading_bar_03,
+            R.drawable.loading_bar_04, R.drawable.loading_bar_05, R.drawable.loading_bar_06, R.drawable.loading_bar_07,
+            R.drawable.loading_bar_08, R.drawable.loading_bar_09, R.drawable.loading_bar_10, R.drawable.loading_bar_11,
+            R.drawable.loading_bar_12, R.drawable.loading_bar_13, R.drawable.loading_bar_14, R.drawable.loading_bar_15,
+            R.drawable.loading_bar_16, R.drawable.loading_bar_17, R.drawable.loading_bar_18, R.drawable.loading_bar_19,
+            R.drawable.loading_bar_20, R.drawable.loading_bar_21, R.drawable.loading_bar_22, R.drawable.loading_bar_23,
+            R.drawable.loading_bar_24, R.drawable.loading_bar_25
+        )
+    }
 
-    LaunchedEffect(Unit) {
-        while (countdown > 0 || !isCameraReady) {
-            delay(1500)
-            tipIndex = (tipIndex + 1) % tips.size
-            if (countdown > 0) countdown--
+    val messages = remember {
+        listOf(
+            "CALIBRATING THE CHAOS...",
+            "FINDING A GOOD ANGLE...",
+            "HOLD ON...",
+            "TRYING NOT TO FALL...",
+            "MEASURING YOUR QUESTIONABLE CAMERA SKILLS...",
+            "ALMOST...!"
+        )
+    }
+
+    var progress by remember { mutableFloatStateOf(0f) }
+    var messageIndex by remember { mutableIntStateOf(0) }
+    var isDone by remember { mutableStateOf(false) }
+    var characterFrameIndex by remember { mutableIntStateOf(0) }
+
+    // Character animation loop reacting to progress
+    LaunchedEffect(progress) {
+        val (startFrame, endFrame) = when {
+            progress < 20f -> 0 to 3
+            progress < 45f -> 4 to 8
+            progress < 70f -> 9 to 12
+            progress < 90f -> 13 to 14
+            else -> 14 to 15
         }
-        delay(600)
+
+        while (!isDone) {
+            val nextFrame = if (characterFrameIndex in startFrame..endFrame) {
+                if (characterFrameIndex >= endFrame) startFrame else characterFrameIndex + 1
+            } else {
+                startFrame
+            }
+            characterFrameIndex = nextFrame
+            val delayMs = listOf(110L, 125L, 140L, 120L).random()
+            delay(delayMs)
+        }
+    }
+
+    // Progress simulation tied to camera initialization
+    LaunchedEffect(isCameraReady) {
+        while (progress < 85f) {
+            delay(120)
+            progress += Random.nextFloat() * 4f + 2f
+            if (Random.nextFloat() > 0.65f) {
+                messageIndex = (messageIndex + 1) % messages.size
+            }
+        }
+        while (!isCameraReady) {
+            delay(80)
+        }
+        while (progress < 100f) {
+            delay(70)
+            progress = (progress + 6f).coerceAtMost(100f)
+        }
+        isDone = true
+        characterFrameIndex = 15
+        delay(350)
+        delay(850)
         onFinishLoading()
+    }
+
+    val barFrameIndex = remember(progress, isDone) {
+        if (!isDone) {
+            (progress / 100f * 23f).toInt().coerceIn(0, 23)
+        } else {
+            25
+        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0D0E13))
-            .padding(24.dp),
+            .background(Color(0xFFFAF8F2))
+            .statusBarsPadding()
+            .navigationBarsPadding(),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
         ) {
-            // App Logo
-            Image(
-                painter = painterResource(id = R.drawable.app_logo),
-                contentDescription = "TiltShift* Logo",
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .border(2.dp, Color(0xFF00E676), RoundedCornerShape(22.dp))
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "TiltShift*",
-                color = Color.White,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = "let the camera poss tooooo",
-                color = Color(0xFF00E676),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            CircularProgressIndicator(
-                color = Color(0xFF00E676),
-                strokeWidth = 3.dp,
-                modifier = Modifier.size(36.dp)
-            )
-
-            Spacer(modifier = Modifier.height(36.dp))
-
-            // Rotating Tip Card
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF161720),
-                border = BorderStroke(1.dp, Color(0xFFFFD54F).copy(alpha = 0.4f)),
-                modifier = Modifier.fillMaxWidth()
+            // GOOFY STICKMAN PHOTOGRAPHER (Hand-drawn doodle on paper)
+            Box(
+                modifier = Modifier.size(width = 220.dp, height = 220.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Lightbulb,
-                            contentDescription = "Tip",
-                            tint = Color(0xFFFFD54F),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "PHOTOGRAPHY TIP",
-                            color = Color(0xFFFFD54F),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp
-                        )
-                    }
+                Image(
+                    painter = painterResource(id = stickmanDrawables[characterFrameIndex.coerceIn(0, 15)]),
+                    contentDescription = "Goofy Stickman Photographer",
+                    modifier = Modifier.fillMaxSize()
+                )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    AnimatedContent(
-                        targetState = tips[tipIndex],
-                        transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(200)) },
-                        label = "tipAnimation"
-                    ) { tipText ->
-                        Text(
-                            text = tipText,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.Center,
-                            lineHeight = 20.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp)
-                        )
-                    }
+                if (isDone) {
+                    Image(
+                        painter = painterResource(id = R.drawable.fx_done),
+                        contentDescription = "Done!",
+                        modifier = Modifier
+                            .size(90.dp)
+                            .align(Alignment.TopEnd)
+                            .offset(x = 10.dp, y = (-15).dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // Enter Viewfinder Button (active once camera is ready)
-            Button(
-                onClick = onFinishLoading,
-                enabled = isCameraReady,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF00E676),
-                    contentColor = Color.Black,
-                    disabledContainerColor = Color.White.copy(alpha = 0.12f),
-                    disabledContentColor = Color.White.copy(alpha = 0.35f)
-                ),
-                shape = RoundedCornerShape(24.dp),
+            // Handwritten-style "LOADING..." text
+            Text(
+                text = if (isDone) "DONE!" else "LOADING...",
+                color = Color(0xFF1A1A1A),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // CRAYON LOADING BAR SPRITE (00 to 25)
+            Image(
+                painter = painterResource(id = loadingBarDrawables[barFrameIndex.coerceIn(0, 25)]),
+                contentDescription = "Loading bar",
                 modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .height(50.dp)
-            ) {
-                Text(
-                    text = if (isCameraReady) "Enter Viewfinder" else "Calibrating Sensors...",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-            }
+                    .width(260.dp)
+                    .height(48.dp)
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Comedic Handwritten Message
+            Text(
+                text = if (isDone) "Ready to tilt and shoot!" else messages[messageIndex],
+                color = Color(0xFF555555),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                letterSpacing = 0.5.sp
+            )
         }
     }
 }
@@ -1177,7 +1200,7 @@ fun PuzzleLockStatusHUD(
                 )
             }
 
-            // 4. Heading / Cardinal Direction (NW, NE, N, S, SW etc.)
+            // 4. Compass Requirement (Renamed to Compass, shows live facing direction under there)
             if (mode == CameraMode.PEAK) {
                 Box(
                     modifier = Modifier
@@ -1186,21 +1209,22 @@ fun PuzzleLockStatusHUD(
                         .background(Color.White.copy(alpha = 0.15f))
                 )
 
-                val cardinal = getCardinalDirection(target.targetCompass)
+                val targetCardinal = getCardinalDirection(target.targetCompass)
+                val currentCardinal = getCardinalDirection(currentCompass)
 
                 RequirementItem(
                     icon = { tint ->
                         Text(
-                            text = cardinal,
+                            text = targetCardinal,
                             color = tint,
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 0.5.sp
                         )
                     },
-                    label = "Heading",
+                    label = "Compass",
                     targetValue = "${target.targetCompass.roundToInt()}°",
-                    currentValue = "${currentCompass.roundToInt()}°",
+                    currentValue = "${currentCompass.roundToInt()}° ($currentCardinal)",
                     isMatched = isCompassLocked,
                     isClose = isCompassClose
                 )
@@ -1685,23 +1709,22 @@ fun ShotCertificationDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.90f))
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+                .background(Color(0xFF090B10))
+                .statusBarsPadding()
+                .navigationBarsPadding()
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth(0.92f)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFF16171D))
-                    .border(BorderStroke(1.5.dp, result.mode.accentColor.copy(alpha = 0.5f)), RoundedCornerShape(24.dp))
-                    .padding(20.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Header Bar
+                // Top App Bar
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1709,17 +1732,22 @@ fun ShotCertificationDialog(
                         Text(
                             text = "TiltShift* Certificate",
                             color = Color.White,
-                            fontSize = 18.sp,
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "Both Photo & Certificate Saved to Gallery",
                             color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 11.sp
+                            fontSize = 12.sp
                         )
                     }
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White)
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .background(Color.White.copy(alpha = 0.12f), CircleShape)
+                    ) {
+                        Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(20.dp))
                     }
                 }
 
@@ -2306,7 +2334,7 @@ fun createCertificateBitmap(
         CertCol("ACCURACY", "${String.format(Locale.US, "%.1f", accuracy)}%", "GRADE: $grade", AndroidColor.parseColor("#00E676"), true),
         CertCol("ZOOM", "${String.format(Locale.US, "%.1f", actualZoom)}x", "TARGET: ${String.format(Locale.US, "%.1f", target.targetZoom)}x", if (isZoomOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FFB300"), isZoomOk),
         CertCol("TILT", "${actualPitch.roundToInt()}°", "TARGET: ${target.targetPitch.roundToInt()}°", if (isTiltOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FF5252"), isTiltOk),
-        CertCol("HEADING", "${actualCompass.roundToInt()}°", "TARGET: ${target.targetCompass.roundToInt()}°", if (isHeadingOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor(if (mode == CameraMode.PEAK) "#FF5252" else "#8B949E"), isHeadingOk)
+        CertCol("COMPASS", "${actualCompass.roundToInt()}°", "TARGET: ${target.targetCompass.roundToInt()}°", if (isHeadingOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor(if (mode == CameraMode.PEAK) "#FF5252" else "#8B949E"), isHeadingOk)
     )
 
     for (i in columns.indices) {
