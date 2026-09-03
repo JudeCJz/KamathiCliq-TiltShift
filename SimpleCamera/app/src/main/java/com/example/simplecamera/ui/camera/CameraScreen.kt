@@ -1129,7 +1129,7 @@ fun PuzzleLockStatusHUD(
         color = Color(0xFF0C1322).copy(alpha = 0.65f)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
@@ -1224,7 +1224,8 @@ fun PuzzleLockStatusHUD(
                             color = tint,
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 0.5.sp
+                            letterSpacing = 0.5.sp,
+                            modifier = Modifier.offset(y = (-2).dp)
                         )
                     },
                     label = "Compass",
@@ -1287,7 +1288,7 @@ fun RequirementItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+        modifier = modifier.padding(horizontal = 5.dp, vertical = 2.dp)
     ) {
         // 1. Parallel Label on top ("Zoom", "Tilt", "Heading")
         Text(
@@ -1299,17 +1300,19 @@ fun RequirementItem(
             softWrap = false
         )
 
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(1.dp))
 
-        // 2. Pure Icon (NO circular badge wrapper)
+        // 2. Pure Icon / Cardinal direction (shifted slightly up so SE, S, W, SW never cut off)
         Box(
-            modifier = Modifier.size(15.dp),
+            modifier = Modifier
+                .height(16.dp)
+                .offset(y = (-1.5).dp),
             contentAlignment = Alignment.Center
         ) {
             icon(accentColor)
         }
 
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(1.dp))
 
         // 3. Values: Target and Current
         Row(
@@ -1708,15 +1711,7 @@ fun ShotCertificationDialog(
     var showCertificateView by remember { mutableStateOf(true) }
     var isLinkedInExpanded by remember { mutableStateOf(false) }
     var currentLinkedInCaption by remember {
-        val pErr = abs(result.actualPitch - result.target.targetPitch)
-        mutableStateOf(
-            RoastsRepository.selectBestLinkedInPost(
-                accuracy = result.accuracy,
-                grade = result.grade,
-                mode = result.mode,
-                pitchErr = pErr
-            )
-        )
+        mutableStateOf(RoastsRepository.LINKEDIN_PARODY_POSTS.random())
     }
 
     Dialog(
@@ -1965,43 +1960,13 @@ fun ShotCertificationDialog(
                                     .fillMaxWidth()
                                     .padding(12.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "THOUGHT LEADERSHIP POST (${RoastsRepository.LINKEDIN_PARODY_POSTS.size} available)",
-                                        color = Color.White.copy(alpha = 0.5f),
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.5.sp
-                                    )
-                                    Row(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(Color(0xFF00E676).copy(alpha = 0.15f))
-                                            .clickable {
-                                                currentLinkedInCaption = RoastsRepository.LINKEDIN_PARODY_POSTS.random()
-                                            }
-                                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Refresh,
-                                            contentDescription = "Shuffle",
-                                            tint = Color(0xFF00E676),
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "Shuffle",
-                                            color = Color(0xFF00E676),
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
+                                Text(
+                                    text = "THOUGHT LEADERSHIP POST",
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.5.sp
+                                )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 BasicTextField(
                                     value = currentLinkedInCaption,
