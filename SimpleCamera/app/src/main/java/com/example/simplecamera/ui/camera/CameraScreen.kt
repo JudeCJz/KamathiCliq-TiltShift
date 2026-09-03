@@ -1405,14 +1405,15 @@ fun CompassWithNS(accentColor: Color, modifier: Modifier = Modifier) {
     }
 }
 
-// Rotated 45-deg phone/rectangle icon to match user screenshot
+// Phone tilting font emoji
 @Composable
 fun TiltedPhoneIcon(tint: Color, modifier: Modifier = Modifier) {
-    Box(
+    Text(
+        text = "📱",
+        fontSize = 13.sp,
         modifier = modifier
-            .size(16.dp)
-            .rotate(45f)
-            .border(1.8.dp, tint, RoundedCornerShape(3.dp))
+            .offset(y = (-1).dp)
+            .rotate(-22f)
     )
 }
 
