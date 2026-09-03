@@ -494,12 +494,12 @@ fun CameraView() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Difficulty Dropdown (Top Left) - Only Baby Mode and Chad Mode
+                // Difficulty Dropdown (Top Left) - Label "Difficulty ▾" with Green/Red outline based on mode
                 Box {
                     Surface(
                         shape = RoundedCornerShape(18.dp),
                         color = Color.Black.copy(alpha = 0.70f),
-                        border = BorderStroke(1.5.dp, currentDifficulty.badgeColor.copy(alpha = 0.8f)),
+                        border = BorderStroke(1.5.dp, currentDifficulty.badgeColor),
                         modifier = Modifier.clickable { showDifficultyMenu = true }
                     ) {
                         Row(
@@ -507,7 +507,7 @@ fun CameraView() {
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
                         ) {
                             Text(
-                                text = "${currentDifficulty.label} ▾",
+                                text = "Difficulty ▾",
                                 color = currentDifficulty.badgeColor,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Black
