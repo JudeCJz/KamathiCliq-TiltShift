@@ -946,7 +946,7 @@ fun LaunchTipsLoadingOverlay(
             R.drawable.loading_bar_04, R.drawable.loading_bar_05, R.drawable.loading_bar_06, R.drawable.loading_bar_07,
             R.drawable.loading_bar_08, R.drawable.loading_bar_09, R.drawable.loading_bar_10, R.drawable.loading_bar_11,
             R.drawable.loading_bar_12, R.drawable.loading_bar_13, R.drawable.loading_bar_14, R.drawable.loading_bar_15,
-            R.drawable.loading_bar_16, R.drawable.loading_bar_17, R.drawable.loading_bar_18
+            R.drawable.loading_bar_16, R.drawable.loading_bar_17
         )
     }
 
@@ -1014,7 +1014,7 @@ fun LaunchTipsLoadingOverlay(
         if (!isDone) {
             (progress / 100f * 17f).toInt().coerceIn(0, 17)
         } else {
-            18
+            17
         }
     }
 
@@ -1070,9 +1070,9 @@ fun LaunchTipsLoadingOverlay(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // CRAYON LOADING BAR SPRITE (00 to 18, bigger display size)
+            // CRAYON LOADING BAR SPRITE (00 to 17, bigger display size)
             Image(
-                painter = painterResource(id = loadingBarDrawables[barFrameIndex.coerceIn(0, 18)]),
+                painter = painterResource(id = loadingBarDrawables[barFrameIndex.coerceIn(0, 17)]),
                 contentDescription = "Loading bar",
                 modifier = Modifier
                     .width(320.dp)
