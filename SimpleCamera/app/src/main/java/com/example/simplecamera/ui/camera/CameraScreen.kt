@@ -1270,12 +1270,12 @@ fun RequirementItem(
                 maxLines = 1,
                 softWrap = false
             )
-            Spacer(modifier = Modifier.width(2.5.dp))
+            Spacer(modifier = Modifier.width(3.dp))
             Text(
                 text = currentValue,
-                color = Color.White.copy(alpha = 0.45f),
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Normal,
+                color = Color.White.copy(alpha = 0.90f),
+                fontSize = 9.5.sp,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 softWrap = false
             )
