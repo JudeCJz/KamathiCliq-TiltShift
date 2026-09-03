@@ -285,7 +285,7 @@ fun CameraView() {
     var showUselessPeakturesGallery by remember { mutableStateOf(false) }
 
     var currentMode by remember { mutableStateOf(CameraMode.PRO) }
-    var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
+    var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_FRONT) }
     var flipRotationAngle by remember { mutableFloatStateOf(0f) }
     val animatedFlipRotation by animateFloatAsState(
         targetValue = flipRotationAngle,
@@ -494,7 +494,7 @@ fun CameraView() {
             Box(modifier = Modifier.fillMaxSize().background(Color.White))
         }
 
-        // Top Controls Header
+        // Top Controls Header (Symmetric Layout)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -508,15 +508,14 @@ fun CameraView() {
                     )
                 )
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
-            Row(
+            Box(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                contentAlignment = Alignment.Center
             ) {
-                // Difficulty Dropdown (Top Left) - Label "Difficulty ▾" with Green/Red outline based on mode
-                Box {
+                // Difficulty Dropdown (Top Left)
+                Box(modifier = Modifier.align(Alignment.CenterStart)) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = Color.Black.copy(alpha = 0.70f),
@@ -567,11 +566,12 @@ fun CameraView() {
                     }
                 }
 
-                // Brand & Mode Badge (Center)
+                // Brand & Mode Badge (Dead Center)
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = Color.Black.copy(alpha = 0.55f),
-                    border = BorderStroke(1.dp, currentMode.accentColor.copy(alpha = 0.35f))
+                    border = BorderStroke(1.dp, currentMode.accentColor.copy(alpha = 0.35f)),
+                    modifier = Modifier.align(Alignment.Center)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -613,16 +613,18 @@ fun CameraView() {
                         }
                     },
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
+                        .size(42.dp)
+                        .align(Alignment.CenterEnd)
+                        .clip(RoundedCornerShape(12.dp))
                         .background(Color.Black.copy(alpha = 0.50f))
+                        .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(12.dp))
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Cameraswitch,
                         contentDescription = "Switch camera",
                         tint = Color.White,
                         modifier = Modifier
-                            .size(24.dp)
+                            .size(22.dp)
                             .rotate(animatedFlipRotation)
                     )
                 }
@@ -693,7 +695,7 @@ fun CameraView() {
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 6.dp)
+                        .padding(horizontal = 16.dp, vertical = 5.dp)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -764,84 +766,91 @@ fun CameraView() {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 4.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
             )
 
-            // Shutter Row + Bottom Right Mode Selector
-            Row(
+            // Shutter Row + Bottom Right Mode Selector (Perfect Horizontal Symmetry)
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
             ) {
                 // Bottom Left: Open Useless Peaktures Gallery Button
-                IconButton(
-                    onClick = { showUselessPeakturesGallery = true },
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.Black.copy(alpha = 0.55f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.20f)),
                     modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.15f))
+                        .size(48.dp)
+                        .align(Alignment.CenterStart)
+                        .clickable { showUselessPeakturesGallery = true }
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.PhotoLibrary,
-                        contentDescription = "Useless Peaktures Gallery",
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.PhotoLibrary,
+                            contentDescription = "Useless Peaktures Gallery",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                // Center: Tactile Shutter Button with Lock / Unlock state (Dead Center)
+                Box(modifier = Modifier.align(Alignment.Center)) {
+                    TactilePuzzleShutterButton(
+                        accentColor = currentMode.accentColor,
+                        isUnlocked = isShutterUnlocked,
+                        isCapturing = isCapturing,
+                        onClick = {
+                            if (!isCapturing && isShutterUnlocked) {
+                                isCapturing = true
+
+                                coroutineScope.launch {
+                                    showFlashFeedback = true
+                                    delay(80)
+                                    showFlashFeedback = false
+                                }
+
+                                takePhotoWithCertification(
+                                    context = context,
+                                    mode = currentMode,
+                                    target = currentTarget,
+                                    actualPitch = currentPitch,
+                                    actualCompass = currentCompass,
+                                    actualZoom = currentZoomRatio,
+                                    imageCapture = imageCapture,
+                                    onPhotoSaved = { result ->
+                                        isCapturing = false
+                                        lastShotResult = result
+                                        currentTarget = generateRandomTarget()
+                                    },
+                                    onError = { exception ->
+                                        isCapturing = false
+                                        Toast.makeText(context, "Capture failed: ${exception.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            } else if (!isShutterUnlocked) {
+                                val pitchErr = abs(currentPitch - currentTarget.targetPitch)
+                                val compassErr = compassDiff
+                                val zoomErr = abs(currentZoomRatio - currentTarget.targetZoom)
+                                val roastToast = getSavageRoast(currentMode, pitchErr, compassErr, zoomErr)
+                                Toast.makeText(context, roastToast, Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     )
                 }
 
-                // Center: Tactile Shutter Button with Lock / Unlock state
-                TactilePuzzleShutterButton(
-                    accentColor = currentMode.accentColor,
-                    isUnlocked = isShutterUnlocked,
-                    isCapturing = isCapturing,
-                    onClick = {
-                        if (!isCapturing && isShutterUnlocked) {
-                            isCapturing = true
-
-                            coroutineScope.launch {
-                                showFlashFeedback = true
-                                delay(80)
-                                showFlashFeedback = false
-                            }
-
-                            takePhotoWithCertification(
-                                context = context,
-                                mode = currentMode,
-                                target = currentTarget,
-                                actualPitch = currentPitch,
-                                actualCompass = currentCompass,
-                                actualZoom = currentZoomRatio,
-                                imageCapture = imageCapture,
-                                onPhotoSaved = { result ->
-                                    isCapturing = false
-                                    lastShotResult = result
-                                    currentTarget = generateRandomTarget()
-                                },
-                                onError = { exception ->
-                                    isCapturing = false
-                                    Toast.makeText(context, "Capture failed: ${exception.message}", Toast.LENGTH_SHORT).show()
-                                }
-                            )
-                        } else if (!isShutterUnlocked) {
-                            val pitchErr = abs(currentPitch - currentTarget.targetPitch)
-                            val compassErr = compassDiff
-                            val zoomErr = abs(currentZoomRatio - currentTarget.targetZoom)
-                            val roastToast = getSavageRoast(currentMode, pitchErr, compassErr, zoomErr)
-                            Toast.makeText(context, roastToast, Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                )
-
                 // Bottom Right: 3 Modes Selector (Normal, Pro, Peak)
-                BottomRightModeSelector(
-                    selectedMode = currentMode,
-                    onModeSelected = { newMode ->
-                        currentMode = newMode
-                        currentTarget = generateRandomTarget()
-                    }
-                )
+                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                    BottomRightModeSelector(
+                        selectedMode = currentMode,
+                        onModeSelected = { newMode ->
+                            currentMode = newMode
+                            currentTarget = generateRandomTarget()
+                        }
+                    )
+                }
             }
         }
 
