@@ -1367,10 +1367,10 @@ fun LaunchTipsLoadingOverlay(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // CRAYON LOADING BAR SPRITE (00 to 16, with final celebration sparkle bar on done)
+            // CRAYON LOADING BAR SPRITE (00 to 16, with ending loading sprite 18 on done)
             Image(
                 painter = painterResource(
-                    id = if (isDone) R.drawable.loading_bar_final else loadingBarDrawables[barFrameIndex.coerceIn(0, 16)]
+                    id = if (isDone) R.drawable.loading_bar_18 else loadingBarDrawables[barFrameIndex.coerceIn(0, 16)]
                 ),
                 contentDescription = "Loading bar",
                 modifier = Modifier
