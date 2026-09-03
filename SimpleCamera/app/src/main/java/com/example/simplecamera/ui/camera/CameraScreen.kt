@@ -17,13 +17,21 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.content.ContentUris
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
+import android.util.Size
 import android.widget.Toast
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.runtime.produceState
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
@@ -267,6 +275,9 @@ fun CameraView() {
 
     // Launch Loading Screen with Tips
     var isLaunchLoading by remember { mutableStateOf(true) }
+
+    // In-App Useless Peaktures Gallery State
+    var showUselessPeakturesGallery by remember { mutableStateOf(false) }
 
     var currentMode by remember { mutableStateOf(CameraMode.PRO) }
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
@@ -754,9 +765,9 @@ fun CameraView() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Bottom Left: Open Gallery Button
+                // Bottom Left: Open Useless Peaktures Gallery Button
                 IconButton(
-                    onClick = { openPhotosGallery(context) },
+                    onClick = { showUselessPeakturesGallery = true },
                     modifier = Modifier
                         .size(52.dp)
                         .clip(CircleShape)
@@ -764,7 +775,7 @@ fun CameraView() {
                 ) {
                     Icon(
                         imageVector = Icons.Filled.PhotoLibrary,
-                        contentDescription = "View Photos",
+                        contentDescription = "Useless Peaktures Gallery",
                         tint = Color.White,
                         modifier = Modifier.size(26.dp)
                     )
@@ -829,6 +840,13 @@ fun CameraView() {
             ShotCertificationDialog(
                 result = result,
                 onDismiss = { lastShotResult = null }
+            )
+        }
+
+        // In-App Useless Peaktures Gallery
+        if (showUselessPeakturesGallery) {
+            UselessPeakturesGallery(
+                onDismiss = { showUselessPeakturesGallery = false }
             )
         }
 
@@ -2379,3 +2397,423 @@ fun PermissionScreen(onRequestPermission: () -> Unit) {
         }
     }
 }
+
+// -------------------------------------------------------------
+// USELESS PEAKTURES IN-APP GALLERY
+// -------------------------------------------------------------
+
+data class UselessPeakture(
+    val id: Long,
+    val uri: Uri,
+    val name: String,
+    val isCertificate: Boolean,
+    val dateAdded: Long
+)
+
+fun loadUselessPeaktures(context: Context): List<UselessPeakture> {
+    val list = mutableListOf<UselessPeakture>()
+    val projection = arrayOf(
+        MediaStore.Images.Media._ID,
+        MediaStore.Images.Media.DISPLAY_NAME,
+        MediaStore.Images.Media.DATE_ADDED
+    )
+    val selection = "${MediaStore.Images.Media.DISPLAY_NAME} LIKE ?"
+    val selectionArgs = arrayOf("TiltShift_%")
+    val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
+
+    try {
+        context.contentResolver.query(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            selectionArgs,
+            sortOrder
+        )?.use { cursor ->
+            val idCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+            val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+            val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
+
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idCol)
+                val name = cursor.getString(nameCol) ?: ""
+                val dateAdded = cursor.getLong(dateCol)
+                val contentUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+                val isCert = name.contains("CERT", ignoreCase = true)
+                list.add(UselessPeakture(id, contentUri, name, isCert, dateAdded))
+            }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+    return list
+}
+
+@Composable
+fun UselessPeakturesGallery(
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    var peaktures by remember { mutableStateOf<List<UselessPeakture>>(emptyList()) }
+    var selectedFilter by remember { mutableIntStateOf(0) } // 0: All, 1: Certificates, 2: Raw Photos
+    var viewingPeakture by remember { mutableStateOf<UselessPeakture?>(null) }
+    var refreshTrigger by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(refreshTrigger) {
+        peaktures = withContext(Dispatchers.IO) {
+            loadUselessPeaktures(context)
+        }
+    }
+
+    val filteredList = remember(peaktures, selectedFilter) {
+        when (selectedFilter) {
+            1 -> peaktures.filter { it.isCertificate }
+            2 -> peaktures.filter { !it.isCertificate }
+            else -> peaktures
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF090B10))
+                .statusBarsPadding()
+                .navigationBarsPadding()
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Top App Bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Useless Peaktures",
+                                color = Color.White,
+                                fontSize = 21.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(Color(0xFF00E676), CircleShape)
+                            )
+                        }
+                        Text(
+                            text = "Certified Accidental Art & Tilted Masterpieces",
+                            color = Color.White.copy(alpha = 0.50f),
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .background(Color.White.copy(alpha = 0.10f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Close",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                // Filter Pill Tabs
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    val certCount = peaktures.count { it.isCertificate }
+                    val photoCount = peaktures.count { !it.isCertificate }
+                    val tabs = listOf("All (${peaktures.size})", "Certificates ($certCount)", "Raw Photos ($photoCount)")
+
+                    tabs.forEachIndexed { index, label ->
+                        val isSelected = selectedFilter == index
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.08f),
+                            border = BorderStroke(1.dp, if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.15f)),
+                            modifier = Modifier.clickable { selectedFilter = index }
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (isSelected) Color.Black else Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = if (isSelected) FontWeight.Black else FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Gallery Grid
+                if (filteredList.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Text(text = "📸", fontSize = 48.sp)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "No Useless Peaktures yet!",
+                                color = Color.White,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Go tilt your phone in Chad Mode and take some certified crooked shots.",
+                                color = Color.White.copy(alpha = 0.50f),
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(filteredList, key = { it.id }) { item ->
+                            PeaktureThumbnailCard(
+                                item = item,
+                                onClick = { viewingPeakture = item }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Fullscreen Peakture Viewer Modal
+            viewingPeakture?.let { peakture ->
+                PeaktureDetailViewer(
+                    peakture = peakture,
+                    onDismiss = { viewingPeakture = null },
+                    onDelete = {
+                        try {
+                            context.contentResolver.delete(peakture.uri, null, null)
+                            Toast.makeText(context, "Peakture deleted from gallery", Toast.LENGTH_SHORT).show()
+                            refreshTrigger++
+                            viewingPeakture = null
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Could not delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PeaktureThumbnailCard(
+    item: UselessPeakture,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val bitmap by produceState<Bitmap?>(initialValue = null, item.uri) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    context.contentResolver.loadThumbnail(item.uri, Size(400, 400), null)
+                } else {
+                    context.contentResolver.openInputStream(item.uri)?.use {
+                        BitmapFactory.decodeStream(it)
+                    }
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0xFF141722),
+        border = BorderStroke(1.dp, if (item.isCertificate) Color(0xFF00E5FF).copy(alpha = 0.35f) else Color.White.copy(alpha = 0.15f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(if (item.isCertificate) 0.75f else 1.0f)
+            .clickable(onClick = onClick)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap!!.asImageBitmap(),
+                    contentDescription = item.name,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.White.copy(alpha = 0.4f)
+                    )
+                }
+            }
+
+            // Top Badge
+            Surface(
+                shape = RoundedCornerShape(topStart = 14.dp, bottomEnd = 8.dp),
+                color = if (item.isCertificate) Color(0xFF00E5FF).copy(alpha = 0.90f) else Color.Black.copy(alpha = 0.75f),
+                modifier = Modifier.align(Alignment.TopStart)
+            ) {
+                Text(
+                    text = if (item.isCertificate) "CERTIFICATE" else "RAW PHOTO",
+                    color = if (item.isCertificate) Color.Black else Color.White,
+                    fontSize = 8.5.sp,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PeaktureDetailViewer(
+    peakture: UselessPeakture,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val context = LocalContext.current
+    val fullBitmap by produceState<Bitmap?>(initialValue = null, peakture.uri) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                context.contentResolver.openInputStream(peakture.uri)?.use {
+                    BitmapFactory.decodeStream(it)
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+        ) {
+            // Main Photo/Certificate Image
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (fullBitmap != null) {
+                    Image(
+                        bitmap = fullBitmap!!.asImageBitmap(),
+                        contentDescription = peakture.name,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    CircularProgressIndicator(color = Color.White)
+                }
+            }
+
+            // Top Header Overlay
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.8f), Color.Transparent)))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+
+                Text(
+                    text = if (peakture.isCertificate) "Certificate of Conformity" else "Raw Useless Peakture",
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .background(Color.Red.copy(alpha = 0.35f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = "Delete",
+                        tint = Color(0xFFFF5252),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            // Bottom Action Bar: Share
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))))
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Button(
+                    onClick = { shareImage(context, peakture.uri) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF00E5FF),
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(48.dp)
+                ) {
+                    Icon(Icons.Filled.Share, contentDescription = "Share", modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Share Peakture", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
