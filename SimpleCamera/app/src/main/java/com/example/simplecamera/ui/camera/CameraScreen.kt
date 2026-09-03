@@ -141,6 +141,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -949,11 +950,11 @@ fun BabyModeAssistOverlay(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = "▲",
-                            color = Color(0xFFFFB300),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Black
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lucide_chevron_up),
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(18.dp)
                         )
                         Text(
                             text = "TILT UP / BACK: ${pitchDelta.toInt()}°",
@@ -962,11 +963,11 @@ fun BabyModeAssistOverlay(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
                         )
-                        Text(
-                            text = "▲",
-                            color = Color(0xFFFFB300),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Black
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lucide_chevron_up),
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -990,11 +991,11 @@ fun BabyModeAssistOverlay(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = "▼",
-                            color = Color(0xFFFFB300),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Black
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lucide_chevron_down),
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(18.dp)
                         )
                         Text(
                             text = "TILT DOWN / FORWARD: ${abs(pitchDelta).toInt()}°",
@@ -1003,11 +1004,11 @@ fun BabyModeAssistOverlay(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
                         )
-                        Text(
-                            text = "▼",
-                            color = Color(0xFFFFB300),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Black
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lucide_chevron_down),
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -1031,11 +1032,11 @@ fun BabyModeAssistOverlay(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "◀",
-                            color = Color(0xFF00E5FF),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Black
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lucide_chevron_left),
+                            contentDescription = null,
+                            tint = Color(0xFF00E5FF),
+                            modifier = Modifier.size(20.dp)
                         )
                         Text(
                             text = "TURN LEFT",
@@ -1071,11 +1072,11 @@ fun BabyModeAssistOverlay(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "▶",
-                            color = Color(0xFF00E5FF),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Black
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lucide_chevron_right),
+                            contentDescription = null,
+                            tint = Color(0xFF00E5FF),
+                            modifier = Modifier.size(20.dp)
                         )
                         Text(
                             text = "TURN RIGHT",
@@ -1098,7 +1099,7 @@ fun BabyModeAssistOverlay(
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .offset(y = (-20).dp),
+                .size(110.dp),
             contentAlignment = Alignment.Center
         ) {
             val clampedPitch = pitchDelta.coerceIn(-20f, 20f)
@@ -1107,122 +1108,160 @@ fun BabyModeAssistOverlay(
             val bubbleOffsetY = (-clampedPitch / 20f) * 36.dp.value
             val isGimbalLocked = isAngleLocked && (currentMode != CameraMode.PEAK || isCompassLocked)
 
-            // Outer ring
-            Box(
-                modifier = Modifier
-                    .size(110.dp)
-                    .border(
-                        width = 2.dp,
-                        color = if (isGimbalLocked) Color(0xFF00E676) else Color.White.copy(alpha = 0.35f),
-                        shape = CircleShape
-                    )
-                    .background(Color.Black.copy(alpha = 0.40f), shape = CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                // Target Bullseye ring (Zone where user wants to put the bubble)
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .border(
-                            width = 2.dp,
-                            color = if (isGimbalLocked) Color(0xFF00E676) else Color.White.copy(alpha = 0.50f),
-                            shape = CircleShape
-                        )
+            // Reticle Outer Ring & Target Center
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val center = Offset(size.width / 2, size.height / 2)
+                val reticleRadius = size.minDimension / 2 - 4.dp.toPx()
+
+                // Outer Guideline Ring
+                drawCircle(
+                    color = if (isGimbalLocked) Color(0xFF00E676).copy(alpha = 0.85f) else Color.White.copy(alpha = 0.35f),
+                    radius = reticleRadius,
+                    center = center,
+                    style = Stroke(width = if (isGimbalLocked) 2.5.dp.toPx() else 1.5.dp.toPx())
                 )
 
-                // Reticle Crosshairs & Direction Vector Line
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val stroke = 1.dp.toPx()
-                    val col = if (isGimbalLocked) Color(0xFF00E676).copy(alpha = 0.8f) else Color.White.copy(alpha = 0.25f)
-                    val center = Offset(size.width / 2f, size.height / 2f)
+                // Center Bullseye Target Circle (tolerance zone)
+                drawCircle(
+                    color = if (isGimbalLocked) Color(0xFF00E676).copy(alpha = 0.40f) else Color.White.copy(alpha = 0.15f),
+                    radius = 18.dp.toPx(),
+                    center = center
+                )
+                drawCircle(
+                    color = if (isGimbalLocked) Color(0xFF00E676) else Color.White.copy(alpha = 0.60f),
+                    radius = 18.dp.toPx(),
+                    center = center,
+                    style = Stroke(width = 1.dp.toPx())
+                )
 
-                    // Crosshairs
-                    drawLine(col, Offset(0f, center.y), Offset(size.width * 0.28f, center.y), stroke)
-                    drawLine(col, Offset(size.width * 0.72f, center.y), Offset(size.width, center.y), stroke)
-                    drawLine(col, Offset(center.x, 0f), Offset(center.x, size.height * 0.28f), stroke)
-                    drawLine(col, Offset(center.x, size.height * 0.72f), Offset(center.x, size.height), stroke)
+                // Crosshairs
+                drawLine(
+                    color = Color.White.copy(alpha = 0.40f),
+                    start = Offset(center.x - 10.dp.toPx(), center.y),
+                    end = Offset(center.x + 10.dp.toPx(), center.y),
+                    strokeWidth = 1.dp.toPx()
+                )
+                drawLine(
+                    color = Color.White.copy(alpha = 0.40f),
+                    start = Offset(center.x, center.y - 10.dp.toPx()),
+                    end = Offset(center.x, center.y + 10.dp.toPx()),
+                    strokeWidth = 1.dp.toPx()
+                )
 
-                    // Connecting guide vector if not locked
-                    if (!isGimbalLocked) {
-                        val bubblePx = Offset(center.x + bubbleOffsetX.dp.toPx(), center.y + bubbleOffsetY.dp.toPx())
-                        drawLine(
-                            color = Color(0xFFFFB300).copy(alpha = 0.6f),
-                            start = center,
-                            end = bubblePx,
-                            strokeWidth = 1.5.dp.toPx()
-                        )
-                    }
-                }
-
-                // Moving Target Bubble
-                Box(
-                    modifier = Modifier
-                        .offset(x = bubbleOffsetX.dp, y = bubbleOffsetY.dp)
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(if (isGimbalLocked) Color(0xFF00E676) else Color(0xFFFF5252))
-                        .border(1.5.dp, Color.White, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isGimbalLocked) {
-                        Text(
-                            text = "✓",
-                            color = Color.Black,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
+                // Vector guide line connecting center to bubble
+                if (!isGimbalLocked) {
+                    val bubblePx = Offset(
+                        center.x + (bubbleOffsetX.dp.toPx()),
+                        center.y + (bubbleOffsetY.dp.toPx())
+                    )
+                    drawLine(
+                        color = Color(0xFFFFB300).copy(alpha = 0.65f),
+                        start = center,
+                        end = bubblePx,
+                        strokeWidth = 1.5.dp.toPx()
+                    )
                 }
             }
 
-            // 6. FLOATING LIVE CONTEXT GUIDANCE PILL (Directly beneath Gimbal)
+            // Moving Target Bubble
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .offset(y = 80.dp)
+                    .offset(x = bubbleOffsetX.dp, y = bubbleOffsetY.dp)
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(if (isGimbalLocked) Color(0xFF00E676) else Color(0xFFFF5252))
+                    .border(1.5.dp, Color.White, CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (isShutterUnlocked) Color(0xFF00E676) else Color.Black.copy(alpha = 0.80f),
-                    border = BorderStroke(
-                        1.5.dp,
-                        if (isShutterUnlocked) Color.White else Color.White.copy(alpha = 0.25f)
+                if (isGimbalLocked) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_lucide_check),
+                        contentDescription = "Locked",
+                        tint = Color.Black,
+                        modifier = Modifier.size(13.dp)
                     )
+                }
+            }
+        }
+
+        // 6. FLOATING LIVE CONTEXT GUIDANCE PILL (Directly beneath Gimbal)
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset(y = 80.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = if (isShutterUnlocked) Color(0xFF00E676) else Color.Black.copy(alpha = 0.80f),
+                border = BorderStroke(
+                    1.5.dp,
+                    if (isShutterUnlocked) Color.White else Color.White.copy(alpha = 0.25f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        if (isShutterUnlocked) {
-                            Text(
-                                text = "🎯 PERFECT! TAP SHUTTER TO SHOOT! 🎯",
-                                color = Color.Black,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        } else if (!isAngleLocked) {
-                            Text(
-                                text = if (pitchDelta > 0) "📱 Tilt back ${pitchDelta.toInt()}°" else "📱 Tilt forward ${abs(pitchDelta).toInt()}°",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        } else if (currentMode == CameraMode.PEAK && !isCompassLocked) {
-                            Text(
-                                text = if (rawCompassDiff > 0) "🧭 Turn right ${rawCompassDiff.toInt()}° ($compassSector)" else "🧭 Turn left ${abs(rawCompassDiff).toInt()}° ($compassSector)",
-                                color = Color(0xFF00E5FF),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        } else if (!isZoomLocked) {
-                            Text(
-                                text = "🔍 Adjust zoom to ${String.format("%.1fx", targetZoom)}",
-                                color = Color(0xFFFFB300),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    if (isShutterUnlocked) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lucide_target),
+                            contentDescription = null,
+                            tint = Color.Black,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "PERFECT! TAP SHUTTER TO SHOOT!",
+                            color = Color.Black,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp
+                        )
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lucide_target),
+                            contentDescription = null,
+                            tint = Color.Black,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    } else if (!isAngleLocked) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_tilt_vibrate),
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = if (pitchDelta > 0) "Tilt back ${pitchDelta.toInt()}°" else "Tilt forward ${abs(pitchDelta).toInt()}°",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else if (currentMode == CameraMode.PEAK && !isCompassLocked) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lucide_compass),
+                            contentDescription = null,
+                            tint = Color(0xFF00E5FF),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = if (rawCompassDiff > 0) "Turn right ${rawCompassDiff.toInt()}° ($compassSector)" else "Turn left ${abs(rawCompassDiff).toInt()}° ($compassSector)",
+                            color = Color(0xFF00E5FF),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else if (!isZoomLocked) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lucide_zoom),
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Adjust zoom to ${String.format(Locale.US, "%.1fx", targetZoom)}",
+                            color = Color(0xFFFFB300),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
