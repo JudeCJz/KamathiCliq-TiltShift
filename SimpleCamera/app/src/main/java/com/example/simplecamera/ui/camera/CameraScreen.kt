@@ -147,6 +147,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -1418,6 +1419,32 @@ fun LaunchTipsLoadingOverlay(
             .navigationBarsPadding(),
         contentAlignment = Alignment.Center
     ) {
+        // Top Credits (Italics)
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 28.dp, start = 20.dp, end = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Created by Jude & Aswal",
+                color = Color(0xFF333333),
+                fontSize = 14.sp,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = "Project done for TinkerHub Useless Projects 3.0 Hackathon",
+                color = Color(0xFF777777),
+                fontSize = 11.5.sp,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.Normal,
+                textAlign = TextAlign.Center
+            )
+        }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
