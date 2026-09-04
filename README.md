@@ -7,10 +7,11 @@
 ---
 
 ## 📌 Basic Details
-### Team Name: TinkerLess
+### Team Name: ForknS
 
 ### Team Members
-- **Team Lead**: JudeCJz - TinkerHub
+- JudeCJz 
+- Aswal S Ajay
 
 ---
 
@@ -85,7 +86,7 @@ While you struggle to balance your phone, a live high-contrast roast engine acti
 
 ### 😈 Difficulties (Top Left Dropdown Menu)
 - **Chad Mode (Default)**: Visual spirit level is hidden. You must balance the phone blindly by feel and live telemetry messages.
-- **Baby Mode**: Translucent (50% opacity) on-screen guidance HUD with Lucide directional chevrons, live degree delta counters, and an interactive 2D gimbal reticle.
+- **Baby Mode**: Translucent (50% opacity) on-screen guidance HUD with Lucide directional chevrons, live degree delta counters, and an interactive 2D gimbal reticle. (For WEAK people)
 
 ### 🔘 Control Layout
 - **Left (58dp)**: In-App Useless Peaktures Gallery browser.
