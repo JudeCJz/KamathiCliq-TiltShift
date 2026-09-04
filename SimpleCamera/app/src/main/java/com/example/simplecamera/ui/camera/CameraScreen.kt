@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import com.example.simplecamera.HostageManager
 import com.example.simplecamera.data.RoastsRepository
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -274,17 +275,14 @@ fun CameraScreen(
 
 @Composable
 fun CameraView(
-    isLockscreenHostage: Boolean = false
+    isLockscreenHostage: Boolean = HostageManager.isHostageMode
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
 
-    // Hostage state: If opened from lockscreen, user CANNOT exit until taking a photo in PEAK mode!
-    var hasCompletedHostagePhoto by remember { mutableStateOf(false) }
-
     // Intercept Back button / Back gesture when in lockscreen hostage mode
-    BackHandler(enabled = isLockscreenHostage && !hasCompletedHostagePhoto) {
+    BackHandler(enabled = HostageManager.isHostageActive()) {
         Toast.makeText(
             context,
             "🔒 HOSTAGE LOCK: You cannot exit to lockscreen until you satisfy PEAK alignment and shoot!",
@@ -305,7 +303,13 @@ fun CameraView(
 
     // When in lockscreen hostage mode, force PEAK mode
     var currentMode by remember {
-        mutableStateOf(if (isLockscreenHostage) CameraMode.PEAK else CameraMode.PRO)
+        mutableStateOf(if (HostageManager.isHostageMode) CameraMode.PEAK else CameraMode.PRO)
+    }
+
+    LaunchedEffect(HostageManager.isHostageMode) {
+        if (HostageManager.isHostageActive()) {
+            currentMode = CameraMode.PEAK
+        }
     }
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_FRONT) }
     var flipRotationAngle by remember { mutableFloatStateOf(0f) }
@@ -616,7 +620,7 @@ fun CameraView(
                         color = Color.Black.copy(alpha = 0.70f),
                         border = BorderStroke(1.5.dp, currentMode.accentColor),
                         modifier = Modifier.clickable {
-                            if (isLockscreenHostage && !hasCompletedHostagePhoto) {
+                            if (HostageManager.isHostageActive()) {
                                 Toast.makeText(
                                     context,
                                     "🔒 HOSTAGE LOCK: Mode changes disabled! You must complete PEAK Mode to escape!",
@@ -724,7 +728,7 @@ fun CameraView(
 
                 val messageCategory = when {
                     isAllMatched -> "ALIGNMENT LOCKED (±5°)"
-                    isLockscreenHostage && !hasCompletedHostagePhoto -> "LOCKSCREEN HOSTAGE ACTIVE 🔒"
+                    HostageManager.isHostageActive() -> "LOCKSCREEN HOSTAGE ACTIVE 🔒"
                     else -> "YOU HAVE A MESSAGE"
                 }
                 val messageText = if (isAllMatched) {
@@ -835,7 +839,7 @@ fun CameraView(
                         .size(58.dp)
                         .align(Alignment.CenterStart)
                         .clickable {
-                            if (isLockscreenHostage && !hasCompletedHostagePhoto) {
+                            if (HostageManager.isHostageActive()) {
                                 Toast.makeText(
                                     context,
                                     "🔒 HOSTAGE LOCK: Gallery locked! Take your PEAK mode photo first!",
@@ -884,8 +888,8 @@ fun CameraView(
                                         isCapturing = false
                                         lastShotResult = result
                                         currentTarget = generateRandomTarget()
-                                        if (isLockscreenHostage && currentMode == CameraMode.PEAK) {
-                                            hasCompletedHostagePhoto = true
+                                        if (HostageManager.isHostageMode && currentMode == CameraMode.PEAK) {
+                                            HostageManager.releaseHostage()
                                             Toast.makeText(
                                                 context,
                                                 "🎉 PEAK PHOTO CAPTURED! Hostage lock released. You may now return.",
@@ -944,7 +948,7 @@ fun CameraView(
         lastShotResult?.let { result ->
             ShotCertificationDialog(
                 result = result,
-                isLockscreenHostage = isLockscreenHostage,
+                isLockscreenHostage = HostageManager.isHostageMode,
                 onDismiss = { lastShotResult = null }
             )
         }
