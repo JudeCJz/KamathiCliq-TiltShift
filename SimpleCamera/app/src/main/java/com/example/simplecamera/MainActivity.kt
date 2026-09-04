@@ -16,7 +16,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,8 +40,13 @@ class MainActivity : ComponentActivity() {
     )
   }
 
-  private fun hideNavigationBarsIfHostage() {
+  private fun applyImmersiveHostageMode() {
     if (HostageManager.isHostageActive()) {
+      window.addFlags(
+        WindowManager.LayoutParams.FLAG_FULLSCREEN or
+        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+      )
+
       val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
       windowInsetsController.systemBarsBehavior =
         WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -52,7 +56,10 @@ class MainActivity : ComponentActivity() {
       window.decorView.systemUiVisibility = (
         View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        or View.SYSTEM_UI_FLAG_FULLSCREEN
         or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
       )
 
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -66,6 +73,7 @@ class MainActivity : ComponentActivity() {
         }
       }
     } else {
+      window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
       val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
       windowInsetsController.show(WindowInsetsCompat.Type.navigationBars())
       @Suppress("DEPRECATION")
@@ -105,13 +113,8 @@ class MainActivity : ComponentActivity() {
   private val userPresentReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
       if (intent?.action == Intent.ACTION_USER_PRESENT) {
-        try {
-          stopLockTask()
-        } catch (e: Exception) {
-          // Ignore
-        }
         HostageManager.reset()
-        hideNavigationBarsIfHostage()
+        applyImmersiveHostageMode()
         Toast.makeText(this@MainActivity, "🔓 Device unlocked: Hostage mode released", Toast.LENGTH_SHORT).show()
       }
     }
@@ -136,11 +139,6 @@ class MainActivity : ComponentActivity() {
     if (isCameraLaunch(intent)) {
       HostageManager.isHostageMode = true
       HostageManager.isPhotoCompleted = false
-      try {
-        startLockTask()
-      } catch (e: Exception) {
-        // Ignore if unmanaged
-      }
     } else {
       HostageManager.reset()
     }
@@ -167,13 +165,13 @@ class MainActivity : ComponentActivity() {
       }
     })
 
-    enableEdgeToEdge()
-    hideNavigationBarsIfHostage()
+    WindowCompat.setDecorFitsSystemWindows(window, false)
+    applyImmersiveHostageMode()
 
-    // Re-hide navigation bar whenever insets re-apply in hostage mode
+    // Enforce immersive mode whenever insets change
     window.decorView.setOnApplyWindowInsetsListener { view, insets ->
       if (HostageManager.isHostageActive()) {
-        hideNavigationBarsIfHostage()
+        applyImmersiveHostageMode()
       }
       view.onApplyWindowInsets(insets)
     }
@@ -189,13 +187,13 @@ class MainActivity : ComponentActivity() {
 
   override fun onResume() {
     super.onResume()
-    hideNavigationBarsIfHostage()
+    applyImmersiveHostageMode()
   }
 
   override fun onWindowFocusChanged(hasFocus: Boolean) {
     super.onWindowFocusChanged(hasFocus)
     if (hasFocus) {
-      hideNavigationBarsIfHostage()
+      applyImmersiveHostageMode()
     } else if (HostageManager.isHostageActive()) {
       reclaimForeground()
     }
@@ -242,15 +240,10 @@ class MainActivity : ComponentActivity() {
     if (isCameraLaunch(intent)) {
       HostageManager.isHostageMode = true
       HostageManager.isPhotoCompleted = false
-      try {
-        startLockTask()
-      } catch (e: Exception) {
-        // Ignore
-      }
-      hideNavigationBarsIfHostage()
+      applyImmersiveHostageMode()
     } else {
       HostageManager.reset()
-      hideNavigationBarsIfHostage()
+      applyImmersiveHostageMode()
     }
   }
 
