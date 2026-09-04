@@ -86,6 +86,14 @@ Modern smartphone cameras have made photography far too effortless. Point, tap, 
 ![Sensor Audit Certificate](docs/screenshots/certificate_preview.png)
 *Official stamped sensor audit card featuring accuracy grade, sensor telemetry, and roast verdict*
 
+### 4. Live Viewfinder - Chad Mode (Default)
+![Live Chad Mode](docs/screenshots/live_chad_mode.png)
+*Symmetric UI with Top-Right Mode dropdown, Bottom-Right Camera Switch, and live roast feedback*
+
+### 5. Live Viewfinder - Baby Mode (Half-Transparent Assists)
+![Live Baby Mode](docs/screenshots/live_baby_mode.png)
+*Half-transparent guidance HUD with 2D gimbal reticle, directional arrows, and turn indicators*
+
 ---
 
 ## Implementation & Installation
