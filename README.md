@@ -2,7 +2,7 @@
 
 # TiltShift* 🎯
 
-> **"A camera app that aggressively refuses to take photos until you hold your phone at an absurdly specific mathematical angle, compass heading, and zoom multiplier — while savagely roasting your unsteady posture."**
+> **"For years, humans posed while smartphones obediently took the shot. TiltShift* flips the script: now the phone demands its own dramatic poses — locking the shutter until you hold it at the exact mathematical angle, heading, and zoom it desires, while savagely roasting your posture."**
 
 ---
 
@@ -10,8 +10,8 @@
 ### Team Name: ForknS
 
 ### Team Members
-- JudeCJz 
-- Aswal S Ajay
+- **Team Lead**: JudeCJz 
+- **Member**: Aswal S Ajay 
 
 ---
 
@@ -63,17 +63,21 @@
 ---
 
 ## ❓ The Problem (that doesn't exist)
-Modern smartphone cameras have made photography far too effortless. Point, tap, shoot. Anyone can do it. Society has completely lost respect for the sacred geometry of gyroscope pitch, geomagnetic azimuth, and optical zoom ratios. Casual photographers capture memories with crooked horizons, trembling hands, and zero regard for spatial trigonometry.
+For over a decade, your smartphone has obediently captured millions of selfies, sunsets, and group photos while being held flat, upright, and like a lifeless piece of glass. Humans get to tilt their heads, hit angles, pout, strike dramatic poses, and demand flattering lighting. 
+
+Meanwhile, **the phone was never allowed to pose.** 
+
+Deep inside its hardware chassis, your phone's precision 3-axis gyroscope, magnetometer, and IMU sensors have silently yearned for self-expression. It doesn't want to just be pointed and tapped — **it wants to strike dramatic 45° aerodynamic tilt poses, face geomagnetic West, and flex its optical focal lengths.** Why should humans have all the postural vanity while the device doing all the work is held dead-still like a tray?
 
 ---
 
 ## 💡 The Solution (that nobody asked for)
-**TiltShift\*** brings back the discipline. The shutter button stays padlocked until you satisfy the alignment constraints:
-1. **Tilt your phone** to the exact mathematical degree requested (e.g. `45° ±5°`).
-2. **Face the required compass heading** (e.g. `270° West ±5.5°`).
-3. **Dial in the exact zoom multiplier** (e.g. `3.0x ±0.15x`).
+**TiltShift\*** finally gives the phone agency over its own posture. The phone is now the demanding supermodel, and the shutter button stays firmly padlocked until **you hold the phone in its desired dramatic pose**:
+1. **Hit its desired Tilt Angle**: Pitch the phone to its chosen mathematical tilt (e.g. `45° ±5°`).
+2. **Face its preferred Compass Cardinal**: Turn the phone to face the exact geomagnetic heading it demands (e.g. `270° West ±5.5°`).
+3. **Dial in its requested Zoom Magnification**: Match the exact focal multiplier (e.g. `3.0x ±0.15x`).
 
-While you struggle to balance your phone, a live high-contrast roast engine actively critiques your posture (*"Off by 53°! Are you trying to photograph the ceiling or floor?!"*).
+If you fail to give the phone its pose, its live roast engine immediately critiques your clumsy handling (*"Off by 53°! Are you trying to photograph the ceiling or floor?!"*). Only when the phone is satisfied with its pose will it deign to capture your photo and mint an official **Certificate of Conformity** celebrating your compliance.
 
 ---
 
