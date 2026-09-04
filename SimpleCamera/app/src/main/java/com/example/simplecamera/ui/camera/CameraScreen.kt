@@ -278,6 +278,7 @@ fun CameraView() {
     // ALWAYS DEFAULT TO HARDEST DIFFICULTY (CHAD MODE)
     var currentDifficulty by remember { mutableStateOf(Difficulty.CHAD) }
     var showDifficultyMenu by remember { mutableStateOf(false) }
+    var showModeMenu by remember { mutableStateOf(false) }
 
     // Launch Loading Screen with Tips
     var isLaunchLoading by remember { mutableStateOf(true) }
@@ -567,11 +568,11 @@ fun CameraView() {
                     }
                 }
 
-                // Brand & Mode Badge (Dead Center)
+                // Brand Badge (Dead Center)
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = Color.Black.copy(alpha = 0.55f),
-                    border = BorderStroke(1.dp, currentMode.accentColor.copy(alpha = 0.35f)),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.20f)),
                     modifier = Modifier.align(Alignment.Center)
                 ) {
                     Row(
@@ -585,49 +586,64 @@ fun CameraView() {
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(currentMode.accentColor)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = currentMode.displayName.uppercase(),
-                            color = currentMode.accentColor,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 1.sp
-                        )
                     }
                 }
 
-                // Camera Switch Button (Top Right)
-                IconButton(
-                    onClick = {
-                        flipRotationAngle += 180f
-                        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
-                            CameraSelector.LENS_FACING_FRONT
-                        } else {
-                            CameraSelector.LENS_FACING_BACK
+                // Modes Dropdown (Top Right)
+                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.Black.copy(alpha = 0.70f),
+                        border = BorderStroke(1.5.dp, currentMode.accentColor),
+                        modifier = Modifier.clickable { showModeMenu = true }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                        ) {
+                            Text(
+                                text = "${currentMode.displayName} ▾",
+                                color = currentMode.accentColor,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black
+                            )
                         }
-                    },
-                    modifier = Modifier
-                        .size(42.dp)
-                        .align(Alignment.CenterEnd)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.Black.copy(alpha = 0.50f))
-                        .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(12.dp))
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Cameraswitch,
-                        contentDescription = "Switch camera",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .size(22.dp)
-                            .rotate(animatedFlipRotation)
-                    )
+                    }
+
+                    DropdownMenu(
+                        expanded = showModeMenu,
+                        onDismissRequest = { showModeMenu = false },
+                        modifier = Modifier.background(Color(0xFF1B1C24))
+                    ) {
+                        CameraMode.values().forEach { mode ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(
+                                            text = mode.displayName,
+                                            color = if (mode == currentMode) mode.accentColor else Color.White,
+                                            fontWeight = if (mode == currentMode) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 13.sp
+                                        )
+                                        Text(
+                                            text = when (mode) {
+                                                CameraMode.NORMAL -> "Zoom challenge"
+                                                CameraMode.PRO -> "Tilt + Zoom puzzle"
+                                                CameraMode.PEAK -> "Tilt + Zoom + Compass direction"
+                                            },
+                                            color = Color.White.copy(alpha = 0.45f),
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    currentMode = mode
+                                    currentTarget = generateRandomTarget()
+                                    showModeMenu = false
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -650,8 +666,7 @@ fun CameraView() {
                 isAngleLocked = isAngleLocked,
                 isCompassLocked = isCompassLocked,
                 isZoomLocked = isZoomLocked,
-                isAllUnlocked = isShutterUnlocked,
-                onRerollTarget = { currentTarget = generateRandomTarget() }
+                isAllUnlocked = isShutterUnlocked
             )
         }
 
@@ -770,20 +785,20 @@ fun CameraView() {
                     .padding(horizontal = 16.dp, vertical = 4.dp)
             )
 
-            // Shutter Row + Bottom Right Mode Selector (Perfect Horizontal Symmetry)
+            // Shutter Row + Gallery + Camera Switch (Perfect Horizontal Symmetry)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Bottom Left: Open Useless Peaktures Gallery Button
+                // Bottom Left: Open Useless Peaktures Gallery Button (Bigger)
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = Color.Black.copy(alpha = 0.55f),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.20f)),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(58.dp)
                         .align(Alignment.CenterStart)
                         .clickable { showUselessPeakturesGallery = true }
                 ) {
@@ -792,7 +807,7 @@ fun CameraView() {
                             imageVector = Icons.Filled.PhotoLibrary,
                             contentDescription = "Useless Peaktures Gallery",
                             tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(30.dp)
                         )
                     }
                 }
@@ -842,15 +857,33 @@ fun CameraView() {
                     )
                 }
 
-                // Bottom Right: 3 Modes Selector (Normal, Pro, Peak)
-                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                    BottomRightModeSelector(
-                        selectedMode = currentMode,
-                        onModeSelected = { newMode ->
-                            currentMode = newMode
-                            currentTarget = generateRandomTarget()
+                // Bottom Right: Camera Switch Button (Bigger, matching Gallery button)
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.Black.copy(alpha = 0.55f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
+                    modifier = Modifier
+                        .size(58.dp)
+                        .align(Alignment.CenterEnd)
+                        .clickable {
+                            flipRotationAngle += 180f
+                            lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+                                CameraSelector.LENS_FACING_FRONT
+                            } else {
+                                CameraSelector.LENS_FACING_BACK
+                            }
                         }
-                    )
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.Cameraswitch,
+                            contentDescription = "Switch camera",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .rotate(animatedFlipRotation)
+                        )
+                    }
                 }
             }
         }
@@ -932,7 +965,7 @@ fun BabyModeAssistOverlay(
         label = "glow"
     )
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().alpha(0.5f)) {
         // 1. TOP DIRECTIONAL ASSIST: TILT UP / BACK
         if (pitchNeedsUp) {
             Box(
@@ -1392,42 +1425,45 @@ fun LaunchTipsLoadingOverlay(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
         ) {
-            // GOOFY STICKMAN PHOTOGRAPHER (Hand-drawn doodle on paper)
+            // GOOFY STICKMAN PHOTOGRAPHER (Hand-drawn doodle on paper - enlarged)
             Box(
                 modifier = Modifier
-                    .size(width = 250.dp, height = 220.dp)
+                    .size(width = 280.dp, height = 240.dp)
                     .padding(4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(id = stickmanDrawables[characterFrameIndex.coerceIn(0, 15)]),
                     contentDescription = "Goofy Stickman Photographer",
-                    modifier = Modifier.size(if (isDone) 200.dp else 190.dp)
+                    modifier = Modifier.size(if (isDone) 235.dp else 205.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Handwritten-style "LOADING..." text
-            Text(
-                text = if (isDone) "DONE!" else "LOADING...",
-                color = Color(0xFF1A1A1A),
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp
-            )
+            // Handwritten-style "LOADING..." text (removed when done as requested)
+            if (!isDone) {
+                Text(
+                    text = "LOADING...",
+                    color = Color(0xFF1A1A1A),
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 2.sp
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+            } else {
+                Spacer(modifier = Modifier.height(18.dp))
+            }
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // CRAYON LOADING BAR SPRITE (00 to 16, with ending loading sprite 18 on done)
+            // CRAYON LOADING BAR SPRITE (Last loading bar 18 is bigger and stretchier)
             Image(
                 painter = painterResource(
                     id = if (isDone) R.drawable.loading_bar_18 else loadingBarDrawables[barFrameIndex.coerceIn(0, 16)]
                 ),
                 contentDescription = "Loading bar",
                 modifier = Modifier
-                    .width(320.dp)
-                    .height(62.dp)
+                    .width(if (isDone) 360.dp else 320.dp)
+                    .height(if (isDone) 74.dp else 62.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1456,8 +1492,7 @@ fun PuzzleLockStatusHUD(
     isAngleLocked: Boolean,
     isCompassLocked: Boolean,
     isZoomLocked: Boolean,
-    isAllUnlocked: Boolean,
-    onRerollTarget: () -> Unit
+    isAllUnlocked: Boolean
 ) {
     val pitchErr = abs(currentPitch - target.targetPitch)
     val compassDiff = abs((currentCompass - target.targetCompass + 540) % 360 - 180)
@@ -1583,32 +1618,6 @@ fun PuzzleLockStatusHUD(
                     isMatched = isCompassLocked,
                     isClose = isCompassClose
                 )
-            }
-
-            // Subtle Divider
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(24.dp)
-                    .background(Color.White.copy(alpha = 0.15f))
-            )
-
-            // 5. Right Refresh Button Circle
-            Surface(
-                shape = CircleShape,
-                color = Color.White.copy(alpha = 0.08f),
-                modifier = Modifier
-                    .size(28.dp)
-                    .clickable(onClick = onRerollTarget)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Filled.Refresh,
-                        contentDescription = "New Target",
-                        tint = Color.White,
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
             }
         }
     }
@@ -1814,17 +1823,6 @@ fun GlassmorphicZoomBar(
                 }
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
-
-            // 2. Left Label: "Zoom"
-            Text(
-                text = "Zoom",
-                color = Color.White,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1
-            )
-
             Spacer(modifier = Modifier.width(8.dp))
 
             // 3. Middle Clean Slider (Pure minimal track and thumb, no tick marks)
@@ -1908,20 +1906,6 @@ fun GlassmorphicZoomBar(
                         color = accentColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Black
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(11.dp)
-                            .background(Color.White.copy(alpha = 0.20f))
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Icon(
-                        imageVector = if (isZoomLocked) Icons.Filled.LockOpen else Icons.Filled.Lock,
-                        contentDescription = "Zoom Lock",
-                        tint = accentColor,
-                        modifier = Modifier.size(13.dp)
                     )
                 }
             }
