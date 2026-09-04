@@ -162,8 +162,21 @@ Want to know how we went from a failed laptop-hinge physics game and a screaming
 ---
 
 ## 👥 Team Contributions
-- **JudeCJz**: Ideation, architecture, CameraX integration, sensor fusion mathematics, Jetpack Compose UI design, certificate generator canvas, artwork design, and savage roast copywriting.
-- **Aswal S Ajay**: Ideation, usability testing, sensor calibration feedback, and documentation.
+
+### **JudeCJz** (Team Lead)
+- **Concept & Ideation**: Conceived the core premise ("Letting phones pose instead of humans").
+- **System Architecture & Camera Core**: Built the native Android CameraX pipeline (`Preview`, `ImageCapture`, hardware lifecycle bindings).
+- **Sensor Fusion Mathematics**: Developed low-latency orientation tracking using Android `Sensor.TYPE_ROTATION_VECTOR` for pitch, azimuth, and zoom tolerances.
+- **Puzzle Shutter & Roast Engine**: Engineered the hardware lock logic and wrote the live savage roast engine and comedic insults.
+- **Certificate Canvas Generator**: Built the hardware-accelerated Android `Canvas` & `Bitmap` engine rendering 1080x1600 Certificates of Conformity.
+- **Android Intent Hijack**: Hooked into `STILL_IMAGE_CAMERA` and `STILL_IMAGE_CAMERA_SECURE` with `showWhenLocked="true"` for lockscreen shortcut support.
+
+### **Aswal S Ajay**
+- **UI/UX Refinements**: Polished Jetpack Compose layouts, obsidian dark mode themes, and dynamic status badges.
+- **"Baby Mode" Assistive HUD**: Designed the 50% opacity assistive overlay with Lucide directional chevrons, degree delta counters, and interactive 2D gimbal reticle.
+- **Vector Icons & Design Alignment**: Integrated Lucide vector drawables and ensured consistent scaling across varied screen densities.
+- **"Useless Peaktures" Gallery**: Built the in-app gallery browser with dual-view raw photo and certificate sorting.
+- **Calibration & Usability Testing**: Conducted extensive physical gyro/compass calibration and stress testing on device.
 
 ---
 
