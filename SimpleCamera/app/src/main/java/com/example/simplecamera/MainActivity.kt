@@ -1,8 +1,10 @@
 package com.example.simplecamera
 
 import android.app.ActivityManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Rect
 import android.media.AudioManager
 import android.os.Build
@@ -26,9 +28,17 @@ import com.example.simplecamera.ui.camera.CameraScreen
 
 class MainActivity : ComponentActivity() {
 
-  private fun checkIsLockscreen(intentToCheck: Intent?): Boolean {
+  private fun isPhoneLocked(): Boolean {
     val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
-    val isKeyguard = keyguardManager?.isKeyguardLocked == true || keyguardManager?.isDeviceLocked == true
+    return keyguardManager?.isKeyguardLocked == true || keyguardManager?.isDeviceLocked == true
+  }
+
+  private fun checkIsLockscreen(intentToCheck: Intent?): Boolean {
+    // Only lockscreen hostage mode IF the phone is actually locked!
+    if (!isPhoneLocked()) {
+      return false
+    }
+
     val isCameraShortcut = intentToCheck?.action in listOf(
       "android.media.action.STILL_IMAGE_CAMERA",
       "android.media.action.STILL_IMAGE_CAMERA_SECURE",
@@ -37,11 +47,11 @@ class MainActivity : ComponentActivity() {
       "android.media.action.IMAGE_CAPTURE_SECURE",
       "android.media.action.VIVO_IMAGE_CAPTURE"
     )
-    return isKeyguard || isCameraShortcut
+    return isCameraShortcut || isPhoneLocked()
   }
 
   private fun hideNavigationBarsIfHostage() {
-    if (HostageManager.isHostageActive()) {
+    if (HostageManager.isHostageActive() && isPhoneLocked()) {
       val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
       windowInsetsController.systemBarsBehavior =
         WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -60,11 +70,16 @@ class MainActivity : ComponentActivity() {
     } else {
       val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
       windowInsetsController.show(WindowInsetsCompat.Type.navigationBars())
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        window.decorView.post {
+          window.decorView.systemGestureExclusionRects = emptyList()
+        }
+      }
     }
   }
 
   private fun reclaimForeground() {
-    if (HostageManager.isHostageActive()) {
+    if (HostageManager.isHostageActive() && isPhoneLocked()) {
       try {
         (getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)
           ?.appTasks
@@ -77,6 +92,17 @@ class MainActivity : ComponentActivity() {
         addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
       }
       startActivity(reclaimIntent)
+    }
+  }
+
+  // Detects when the user unlocks their phone (PIN, fingerprint, face, swipe)
+  private val userPresentReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+      if (intent?.action == Intent.ACTION_USER_PRESENT) {
+        HostageManager.reset()
+        hideNavigationBarsIfHostage()
+        Toast.makeText(this@MainActivity, "🔓 Device unlocked: Hostage mode released", Toast.LENGTH_SHORT).show()
+      }
     }
   }
 
@@ -100,11 +126,25 @@ class MainActivity : ComponentActivity() {
     if (isHostage) {
       HostageManager.isHostageMode = true
       HostageManager.isPhotoCompleted = false
+    } else {
+      HostageManager.reset()
+    }
+
+    try {
+      registerReceiver(userPresentReceiver, IntentFilter(Intent.ACTION_USER_PRESENT))
+    } catch (e: Exception) {
+      // Ignore
     }
 
     // Intercept Back gestures and system back in Android 13/14
     onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
       override fun handleOnBackPressed() {
+        if (!isPhoneLocked()) {
+          HostageManager.reset()
+          isEnabled = false
+          finish()
+          return
+        }
         if (HostageManager.isHostageActive()) {
           Toast.makeText(
             this@MainActivity,
@@ -132,21 +172,31 @@ class MainActivity : ComponentActivity() {
 
   override fun onResume() {
     super.onResume()
+    if (!isPhoneLocked()) {
+      HostageManager.reset()
+    }
     hideNavigationBarsIfHostage()
   }
 
   override fun onWindowFocusChanged(hasFocus: Boolean) {
     super.onWindowFocusChanged(hasFocus)
+    if (!isPhoneLocked()) {
+      HostageManager.reset()
+    }
     if (hasFocus) {
       hideNavigationBarsIfHostage()
-    } else if (HostageManager.isHostageActive()) {
+    } else if (HostageManager.isHostageActive() && isPhoneLocked()) {
       reclaimForeground()
     }
   }
 
   override fun onUserLeaveHint() {
     super.onUserLeaveHint()
-    if (HostageManager.isHostageActive()) {
+    if (!isPhoneLocked()) {
+      HostageManager.reset()
+      return
+    }
+    if (HostageManager.isHostageActive() && isPhoneLocked()) {
       Toast.makeText(
         this,
         "🔒 HOSTAGE LOCK: Exit gesture blocked! Complete PEAK Mode to escape!",
@@ -158,8 +208,17 @@ class MainActivity : ComponentActivity() {
 
   override fun onPause() {
     super.onPause()
-    if (HostageManager.isHostageActive()) {
+    if (HostageManager.isHostageActive() && isPhoneLocked()) {
       reclaimForeground()
+    }
+  }
+
+  override fun onDestroy() {
+    super.onDestroy()
+    try {
+      unregisterReceiver(userPresentReceiver)
+    } catch (e: Exception) {
+      // Ignore
     }
   }
 
@@ -171,12 +230,19 @@ class MainActivity : ComponentActivity() {
       HostageManager.isHostageMode = true
       HostageManager.isPhotoCompleted = false
       hideNavigationBarsIfHostage()
+    } else {
+      HostageManager.reset()
+      hideNavigationBarsIfHostage()
     }
   }
 
   // Intercept physical/navigation-bar Back button and volume buttons at hardware key level
   override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
     if (keyCode == KeyEvent.KEYCODE_BACK) {
+      if (!isPhoneLocked()) {
+        HostageManager.reset()
+        return super.onKeyDown(keyCode, event)
+      }
       if (HostageManager.isHostageActive()) {
         Toast.makeText(
           this,
@@ -198,7 +264,7 @@ class MainActivity : ComponentActivity() {
 
   override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
     if (keyCode == KeyEvent.KEYCODE_BACK) {
-      if (HostageManager.isHostageActive()) {
+      if (HostageManager.isHostageActive() && isPhoneLocked()) {
         return true // CONSUMED!
       }
     }
@@ -210,6 +276,11 @@ class MainActivity : ComponentActivity() {
 
   @Deprecated("Deprecated in Java")
   override fun onBackPressed() {
+    if (!isPhoneLocked()) {
+      HostageManager.reset()
+      super.onBackPressed()
+      return
+    }
     if (HostageManager.isHostageActive()) {
       Toast.makeText(
         this,

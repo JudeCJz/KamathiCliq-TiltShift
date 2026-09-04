@@ -14,6 +14,7 @@ object HostageManager {
 
     fun releaseHostage() {
         isPhotoCompleted = true
+        isHostageMode = false
     }
 
     fun reset() {
