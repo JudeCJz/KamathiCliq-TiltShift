@@ -142,8 +142,8 @@ adb shell am start -n com.example.simplecamera/.MainActivity
 ### Option 2: Build from Source with Gradle Wrapper
 ```bash
 # 1. Clone the repository
-git clone https://github.com/JudeCJz/TinkerLess.git
-cd TinkerLess/SimpleCamera
+git clone https://github.com/JudeCJz/KamathiCliq-TiltShift.git
+cd KamathiCliq-TiltShift/SimpleCamera
 
 # 2. Build debug APK
 .\gradlew.bat assembleDebug
@@ -157,6 +157,7 @@ adb shell am start -n com.example.simplecamera/.MainActivity
 
 ## 👥 Team Contributions
 - **JudeCJz**: Ideation, architecture, CameraX integration, sensor fusion mathematics, Jetpack Compose UI design, certificate generator canvas, artwork design, and savage roast copywriting.
+- **Aswal S Ajay**: Ideation, usability testing, sensor calibration feedback, and documentation.
 
 ---
 
