@@ -62,6 +62,24 @@
 
 ---
 
+### 6. In-App "Useless Peaktures" Certified Gallery
+<p align="center">
+  <img src="docs/screenshots/gallery_showcase.jpeg" width="320" alt="Useless Peaktures Gallery Showcase" />
+  <br />
+  <em>Dedicated in-app museum showcasing your certified accidental art, side-by-side raw captures, and official stamped audits</em>
+</p>
+
+---
+
+### 7. 👑 Royal LinkedIn Thought Leadership Parody Engine
+<p align="center">
+  <img src="docs/screenshots/linkedin_integration.png" width="340" alt="LinkedIn Thought Leadership Integration" />
+  <br />
+  <em><strong>"His Royal Sycophancy on Demand."</strong> For when complying with your phone's trigonometric tyranny is so profound you must immediately enlighten the C-suite on LinkedIn with satirical VC fundraising stories and grindset flexes.</em>
+</p>
+
+---
+
 ## ❓ The Problem (that doesn't exist)
 For over a decade, your smartphone has obediently captured millions of selfies, sunsets, and group photos while being held flat, upright, and like a lifeless piece of glass. Humans get to tilt their heads, hit angles, pout, strike dramatic poses, and demand flattering lighting. 
 

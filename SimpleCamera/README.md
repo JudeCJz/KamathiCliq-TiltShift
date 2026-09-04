@@ -16,9 +16,16 @@
 | :---: | :---: |
 | <img src="../docs/screenshots/loading_screen.jpeg" width="260" alt="Launch Screen" /> | <img src="../docs/screenshots/interface.jpeg" width="260" alt="Viewfinder" /> |
 
-### 3. Official Sensor Audit Certificate
+### 3. Official Sensor Audit Certificate & Gallery Showcase
+| Certificate of Conformity | Useless Peaktures Gallery |
+| :---: | :---: |
+| <img src="../docs/screenshots/example_certificate.jpeg" width="280" alt="Sensor Audit Certificate" /> | <img src="../docs/screenshots/gallery_showcase.jpeg" width="280" alt="Gallery Showcase" /> |
+
+### 4. 👑 Royal LinkedIn Thought Leadership Parody Engine
 <p align="center">
-  <img src="../docs/screenshots/example_certificate.jpeg" width="340" alt="Sensor Audit Certificate" />
+  <img src="../docs/screenshots/linkedin_integration.png" width="320" alt="LinkedIn Parody Engine" />
+  <br />
+  <em>Automatic satirical thought leadership post generation upon successful geometric alignment.</em>
 </p>
 
 ---
