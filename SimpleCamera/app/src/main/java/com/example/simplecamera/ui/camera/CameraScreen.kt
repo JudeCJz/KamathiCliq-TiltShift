@@ -890,6 +890,11 @@ fun CameraView(
                                         currentTarget = generateRandomTarget()
                                         if (HostageManager.isHostageMode && currentMode == CameraMode.PEAK) {
                                             HostageManager.releaseHostage()
+                                            try {
+                                                (context as? android.app.Activity)?.stopLockTask()
+                                            } catch (e: Exception) {
+                                                // Ignore
+                                            }
                                             Toast.makeText(
                                                 context,
                                                 "🎉 PEAK PHOTO CAPTURED! Hostage lock released. You may now return.",
@@ -2421,6 +2426,11 @@ fun ShotCertificationDialog(
                     if (isLockscreenHostage) {
                         Button(
                             onClick = {
+                                try {
+                                    (context as? android.app.Activity)?.stopLockTask()
+                                } catch (e: Exception) {
+                                    // Ignore
+                                }
                                 (context as? android.app.Activity)?.finish()
                             },
                             colors = ButtonDefaults.buttonColors(
