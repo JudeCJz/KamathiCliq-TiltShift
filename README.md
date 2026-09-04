@@ -39,6 +39,7 @@ Modern smartphone cameras have made photography far too effortless. Point, tap, 
 - 🏆 **Dual Gallery Save**: Saves the raw JPEG alongside an official, stamped **TiltShift\* Sensor Audit Certificate** featuring your accuracy score (`99.2%`), rank grade (`S+ PERFECT`), and audit verdict.
 - 🎨 **Goofy Stickman Splash Screen**: Custom hand-drawn stickman photographer with dynamic crayon loading bar sprites and comedic calibration status messages.
 - 🖼️ **In-App Useless Peaktures Gallery**: Dedicated gallery browser to view your certified captures, accuracy grades, and share them directly.
+- ⚡ **Hardware Camera Shortcut Hijack**: Hooks into Android's `STILL_IMAGE_CAMERA` and `STILL_IMAGE_CAMERA_SECURE` intents with `showWhenLocked="true"`. Double-clicking your phone's power button or swiping from the lockscreen launches TiltShift* instead of your stock camera!
 
 ---
 
@@ -93,6 +94,10 @@ Modern smartphone cameras have made photography far too effortless. Point, tap, 
 ### 5. Live Viewfinder - Baby Mode (Half-Transparent Assists)
 ![Live Baby Mode](docs/screenshots/live_baby_mode.png)
 *Half-transparent guidance HUD with 2D gimbal reticle, directional arrows, and turn indicators*
+
+### 6. Hardware Camera Shortcut Hijack
+![Camera Shortcut Hijack](docs/screenshots/camera_shortcut_hijack.png)
+*Registers as a system camera provider to intercept hardware power double-press and lockscreen swipes*
 
 ---
 
