@@ -155,6 +155,12 @@ adb shell am start -n com.example.simplecamera/.MainActivity
 
 ---
 
+## 📖 The Hackathon Story
+Want to know how we went from a failed laptop-hinge physics game and a screaming mouse cursor to letting smartphones pose for the first time in human history?  
+👉 **[Read the Full Hackathon Chronicles here!](HACKATHON_JOURNEY.md)**
+
+---
+
 ## 👥 Team Contributions
 - **JudeCJz**: Ideation, architecture, CameraX integration, sensor fusion mathematics, Jetpack Compose UI design, certificate generator canvas, artwork design, and savage roast copywriting.
 - **Aswal S Ajay**: Ideation, usability testing, sensor calibration feedback, and documentation.
