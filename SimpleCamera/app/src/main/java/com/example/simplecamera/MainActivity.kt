@@ -16,7 +16,22 @@ import androidx.compose.ui.Modifier
 import com.example.simplecamera.theme.SimpleCameraTheme
 import com.example.simplecamera.ui.camera.CameraScreen
 
+import android.content.Intent
+import androidx.compose.runtime.mutableStateOf
+
 class MainActivity : ComponentActivity() {
+  private val isLockscreenHostageState = mutableStateOf(false)
+
+  private fun checkIsLockscreen(intentToCheck: Intent?): Boolean {
+    val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+    val isLocked = keyguardManager?.isKeyguardLocked == true
+    val isSecureAction = intentToCheck?.action in listOf(
+      "android.media.action.STILL_IMAGE_CAMERA_SECURE",
+      "android.media.action.VIVO_STILL_IMAGE_CAMERA_SECURE"
+    )
+    return isLocked || isSecureAction
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
@@ -33,14 +48,22 @@ class MainActivity : ComponentActivity() {
       )
     }
 
+    isLockscreenHostageState.value = checkIsLockscreen(intent)
+
     enableEdgeToEdge()
     setContent {
       SimpleCameraTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-          CameraScreen()
+          CameraScreen(isLockscreenHostage = isLockscreenHostageState.value)
         }
       }
     }
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    isLockscreenHostageState.value = checkIsLockscreen(intent)
   }
 
   // Intercept volume/sound hardware buttons: adjust sound volume normally and disable camera photo triggering!

@@ -34,7 +34,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.runtime.produceState
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
@@ -127,6 +127,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -234,7 +235,9 @@ fun getSavageRoast(mode: CameraMode, pitchErr: Float, compassErr: Float, zoomErr
 }
 
 @Composable
-fun CameraScreen() {
+fun CameraScreen(
+    isLockscreenHostage: Boolean = false
+) {
     val context = LocalContext.current
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -261,7 +264,7 @@ fun CameraScreen() {
     }
 
     if (hasCameraPermission) {
-        CameraView()
+        CameraView(isLockscreenHostage = isLockscreenHostage)
     } else {
         PermissionScreen(onRequestPermission = {
             permissionLauncher.launch(Manifest.permission.CAMERA)
@@ -270,10 +273,24 @@ fun CameraScreen() {
 }
 
 @Composable
-fun CameraView() {
+fun CameraView(
+    isLockscreenHostage: Boolean = false
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
+
+    // Hostage state: If opened from lockscreen, user CANNOT exit until taking a photo in PEAK mode!
+    var hasCompletedHostagePhoto by remember { mutableStateOf(false) }
+
+    // Intercept Back button / Back gesture when in lockscreen hostage mode
+    BackHandler(enabled = isLockscreenHostage && !hasCompletedHostagePhoto) {
+        Toast.makeText(
+            context,
+            "🔒 HOSTAGE LOCK: You cannot exit to lockscreen until you satisfy PEAK alignment and shoot!",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
 
     // ALWAYS DEFAULT TO HARDEST DIFFICULTY (CHAD MODE)
     var currentDifficulty by remember { mutableStateOf(Difficulty.CHAD) }
@@ -286,7 +303,10 @@ fun CameraView() {
     // In-App Useless Peaktures Gallery State
     var showUselessPeakturesGallery by remember { mutableStateOf(false) }
 
-    var currentMode by remember { mutableStateOf(CameraMode.PRO) }
+    // When in lockscreen hostage mode, force PEAK mode
+    var currentMode by remember {
+        mutableStateOf(if (isLockscreenHostage) CameraMode.PEAK else CameraMode.PRO)
+    }
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_FRONT) }
     var flipRotationAngle by remember { mutableFloatStateOf(0f) }
     val animatedFlipRotation by animateFloatAsState(
@@ -595,7 +615,17 @@ fun CameraView() {
                         shape = RoundedCornerShape(12.dp),
                         color = Color.Black.copy(alpha = 0.70f),
                         border = BorderStroke(1.5.dp, currentMode.accentColor),
-                        modifier = Modifier.clickable { showModeMenu = true }
+                        modifier = Modifier.clickable {
+                            if (isLockscreenHostage && !hasCompletedHostagePhoto) {
+                                Toast.makeText(
+                                    context,
+                                    "🔒 HOSTAGE LOCK: Mode changes disabled! You must complete PEAK Mode to escape!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                showModeMenu = true
+                            }
+                        }
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -692,7 +722,11 @@ fun CameraView() {
                 val pErr = abs(currentPitch - currentTarget.targetPitch)
                 val isAllMatched = isShutterUnlocked
 
-                val messageCategory = if (isAllMatched) "ALIGNMENT LOCKED (±5°)" else "YOU HAVE A MESSAGE"
+                val messageCategory = when {
+                    isAllMatched -> "ALIGNMENT LOCKED (±5°)"
+                    isLockscreenHostage && !hasCompletedHostagePhoto -> "LOCKSCREEN HOSTAGE ACTIVE 🔒"
+                    else -> "YOU HAVE A MESSAGE"
+                }
                 val messageText = if (isAllMatched) {
                     "Alignment holding steady! Don't tremble, capture now."
                 } else when {
@@ -800,7 +834,17 @@ fun CameraView() {
                     modifier = Modifier
                         .size(58.dp)
                         .align(Alignment.CenterStart)
-                        .clickable { showUselessPeakturesGallery = true }
+                        .clickable {
+                            if (isLockscreenHostage && !hasCompletedHostagePhoto) {
+                                Toast.makeText(
+                                    context,
+                                    "🔒 HOSTAGE LOCK: Gallery locked! Take your PEAK mode photo first!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                showUselessPeakturesGallery = true
+                            }
+                        }
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -840,6 +884,14 @@ fun CameraView() {
                                         isCapturing = false
                                         lastShotResult = result
                                         currentTarget = generateRandomTarget()
+                                        if (isLockscreenHostage && currentMode == CameraMode.PEAK) {
+                                            hasCompletedHostagePhoto = true
+                                            Toast.makeText(
+                                                context,
+                                                "🎉 PEAK PHOTO CAPTURED! Hostage lock released. You may now return.",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
                                     },
                                     onError = { exception ->
                                         isCapturing = false
@@ -892,6 +944,7 @@ fun CameraView() {
         lastShotResult?.let { result ->
             ShotCertificationDialog(
                 result = result,
+                isLockscreenHostage = isLockscreenHostage,
                 onDismiss = { lastShotResult = null }
             )
         }
@@ -2040,6 +2093,7 @@ fun FocusIndicator(offset: Offset, color: Color, onDismiss: () -> Unit) {
 @Composable
 fun ShotCertificationDialog(
     result: ShotResult,
+    isLockscreenHostage: Boolean = false,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -2357,6 +2411,26 @@ fun ShotCertificationDialog(
                                 .height(46.dp)
                         ) {
                             Text(text = "Next Target", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    if (isLockscreenHostage) {
+                        Button(
+                            onClick = {
+                                (context as? android.app.Activity)?.finish()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF00E676),
+                                contentColor = Color.Black
+                            ),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                        ) {
+                            Icon(Icons.Filled.LockOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = "Exit to Lockscreen (Hostage Released)", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
