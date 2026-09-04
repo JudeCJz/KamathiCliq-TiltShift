@@ -198,6 +198,7 @@ data class ModeTarget(
     val targetPitch: Float,      // Target tilt angle in degrees (-90 to +90)
     val targetCompass: Float,    // Target heading in degrees (0 to 359)
     val targetZoom: Float,       // Target zoom ratio (e.g. 1.5x to 3.5x)
+    val targetDistanceCm: Int = 70, // Target distance in cm for Peak+ mode
     val targetExpression: FacialExpression? = null // Target facial expression for Peak+ mode
 )
 
@@ -219,7 +220,7 @@ data class ShotResult(
     val peakPlusEyesClosed: Boolean = true
 )
 
-fun generateRandomTarget(mode: CameraMode = CameraMode.PEAK): ModeTarget {
+fun generateRandomTarget(mode: CameraMode = CameraMode.PEAK, lensFacing: Int = CameraSelector.LENS_FACING_FRONT): ModeTarget {
     val samplePitches = listOf(15f, 25f, 35f, 45f, 60f)
     val pitch = samplePitches.random()
 
@@ -228,13 +229,15 @@ fun generateRandomTarget(mode: CameraMode = CameraMode.PEAK): ModeTarget {
     val sampleZooms = listOf(1.5f, 2.0f, 2.5f, 3.0f, 3.5f)
     val zoom = sampleZooms.random()
 
-    val expression = if (mode == CameraMode.PEAK_PLUS) FacialExpression.random() else null
+    val isFront = lensFacing == CameraSelector.LENS_FACING_FRONT
+    val distance = if (mode == CameraMode.PEAK_PLUS) PeakPlusEvaluator.randomTargetDistance(isFront) else 70
 
     return ModeTarget(
         targetPitch = pitch,
         targetCompass = compass,
         targetZoom = zoom,
-        targetExpression = expression
+        targetDistanceCm = distance,
+        targetExpression = null
     )
 }
 
@@ -425,7 +428,7 @@ fun CameraView() {
         CameraMode.NORMAL -> isZoomLocked
         CameraMode.PRO -> isAngleLocked && isZoomLocked
         CameraMode.PEAK -> isAngleLocked && isCompassLocked && isZoomLocked
-        CameraMode.PEAK_PLUS -> peakPlusState.isReadyToShoot
+        CameraMode.PEAK_PLUS -> isAngleLocked && isCompassLocked && isZoomLocked && peakPlusState.isReadyToShoot
     }
 
     val imageCapture = remember {
@@ -477,10 +480,11 @@ fun CameraView() {
                                             face = primaryFace,
                                             frameWidth = rotW,
                                             frameHeight = rotH,
-                                            isFrontCamera = isFront
+                                            isFrontCamera = isFront,
+                                            targetDistanceCm = currentTarget.targetDistanceCm
                                         )
                                     } else {
-                                        peakPlusState = PeakPlusEvaluator.evaluate(null, 0, 0, isFront)
+                                        peakPlusState = PeakPlusEvaluator.evaluate(null, 0, 0, isFront, currentTarget.targetDistanceCm)
                                     }
                                 }
                                 .addOnFailureListener {
@@ -561,7 +565,7 @@ fun CameraView() {
         )
 
         // Baby Mode Full Screen Alignment & Directional Assists
-        if (isCameraReady && currentDifficulty.showLevelHelper && (currentMode == CameraMode.PRO || currentMode == CameraMode.PEAK)) {
+        if (isCameraReady && currentDifficulty.showLevelHelper && (currentMode == CameraMode.PRO || currentMode == CameraMode.PEAK || currentMode == CameraMode.PEAK_PLUS)) {
             BabyModeAssistOverlay(
                 currentPitch = currentPitch,
                 targetPitch = currentTarget.targetPitch,
@@ -731,7 +735,7 @@ fun CameraView() {
                                                 CameraMode.NORMAL -> "Zoom challenge"
                                                 CameraMode.PRO -> "Tilt + Zoom puzzle"
                                                 CameraMode.PEAK -> "Tilt + Zoom + Compass direction"
-                                                CameraMode.PEAK_PLUS -> "Arm's length (~70cm) + Eyes Closed"
+                                                CameraMode.PEAK_PLUS -> "Tilt + Zoom + Compass + Distance + Eyes"
                                             },
                                             color = Color.White.copy(alpha = 0.45f),
                                             fontSize = 10.sp
@@ -740,7 +744,7 @@ fun CameraView() {
                                 },
                                 onClick = {
                                     currentMode = mode
-                                    currentTarget = generateRandomTarget(mode)
+                                    currentTarget = generateRandomTarget(mode, lensFacing)
                                     peakPlusState = PeakPlusState()
                                     showModeMenu = false
                                 }
@@ -751,14 +755,15 @@ fun CameraView() {
             }
         }
 
-        // Top Status HUD Bar
-        Box(
+        // Top Status Overlays: HUD and Peak+ Challenge Banner in a single unified Column (No overlap!)
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
                 .padding(top = 66.dp, start = 16.dp, end = 16.dp),
-            contentAlignment = Alignment.Center
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             PuzzleLockStatusHUD(
                 mode = currentMode,
@@ -772,24 +777,16 @@ fun CameraView() {
                 peakPlusState = peakPlusState,
                 isAllUnlocked = isShutterUnlocked
             )
-        }
 
-        // Dedicated Peak+ Arm Stretch & Eyes Closed Challenge Floating Banner
-        if (currentMode == CameraMode.PEAK_PLUS) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(top = 142.dp, start = 16.dp, end = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
+            if (currentMode == CameraMode.PEAK_PLUS) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
-                    color = Color(0xFF141524).copy(alpha = 0.90f),
+                    color = Color(0xFF141524).copy(alpha = 0.92f),
                     border = BorderStroke(
                         1.2.dp,
-                        if (peakPlusState.isReadyToShoot) Color(0xFF00E676) else if (peakPlusState.isArmStretched || peakPlusState.areEyesClosed) Color(0xFFFFB300) else Color(0xFFE040FB)
+                        if (peakPlusState.isReadyToShoot) Color(0xFF00E676)
+                        else if (peakPlusState.isDistanceMatched || peakPlusState.areEyesClosed) Color(0xFFFFB300)
+                        else Color(0xFFE040FB)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -798,10 +795,26 @@ fun CameraView() {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text(
-                            text = if (peakPlusState.isReadyToShoot) "📸" else if (peakPlusState.areEyesClosed) "😴" else "📏",
-                            fontSize = 24.sp
-                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = if (peakPlusState.isReadyToShoot) Color(0xFF00E676).copy(alpha = 0.2f) else Color(0xFFE040FB).copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, if (peakPlusState.isReadyToShoot) Color(0xFF00E676) else Color(0xFFE040FB)),
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = painterResource(
+                                        if (peakPlusState.isReadyToShoot) R.drawable.ic_lucide_check
+                                        else if (peakPlusState.isDistanceMatched) R.drawable.ic_eye_closed
+                                        else R.drawable.ic_ruler
+                                    ),
+                                    contentDescription = null,
+                                    tint = if (peakPlusState.isReadyToShoot) Color(0xFF00E676) else Color(0xFFE040FB),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
                         Column(modifier = Modifier.weight(1f)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -809,14 +822,17 @@ fun CameraView() {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "ARM STRETCH ~70CM + EYES CLOSED",
+                                    text = "TARGET: ${currentTarget.targetDistanceCm}CM + CLOSED EYES",
                                     color = Color.White,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 0.5.sp
                                 )
                                 Text(
-                                    text = if (peakPlusState.isReadyToShoot) "READY! 100%" else if (peakPlusState.isArmStretched) "ARM OK ✅" else if (peakPlusState.estimatedDistanceCm > 0) "${peakPlusState.estimatedDistanceCm}cm" else "NO FACE",
+                                    text = if (peakPlusState.isReadyToShoot) "READY (100%)"
+                                    else if (peakPlusState.isDistanceMatched) "DISTANCE MATCHED"
+                                    else if (peakPlusState.estimatedDistanceCm > 0) "${peakPlusState.estimatedDistanceCm}cm"
+                                    else "NO FACE",
                                     color = if (peakPlusState.isReadyToShoot) Color(0xFF00E676) else Color(0xFFE040FB),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Black
@@ -833,7 +849,7 @@ fun CameraView() {
                                         .weight(1f)
                                         .height(4.dp)
                                         .clip(RoundedCornerShape(2.dp)),
-                                    color = if (peakPlusState.isArmStretched) Color(0xFF00E676) else Color(0xFFE040FB),
+                                    color = if (peakPlusState.isDistanceMatched) Color(0xFF00E676) else Color(0xFFE040FB),
                                     trackColor = Color.White.copy(alpha = 0.15f)
                                 )
                                 LinearProgressIndicator(
@@ -887,13 +903,20 @@ fun CameraView() {
                     if (isAllMatched) "ALIGNMENT LOCKED" else "YOU HAVE A MESSAGE"
                 }
                 val messageText = if (isAllMatched) {
-                    "All requirements locked! Don't tremble, capture now."
+                    "All requirements locked. Capture now."
                 } else when {
-                    currentMode == CameraMode.PEAK_PLUS -> peakPlusState.guidanceMessage
+                    currentMode == CameraMode.PEAK_PLUS -> {
+                        when {
+                            !isZoomLocked -> "Zoom off by ${String.format(Locale.US, "%.1f", abs(currentZoomRatio - currentTarget.targetZoom))}x. Match target ${String.format(Locale.US, "%.1f", currentTarget.targetZoom)}x."
+                            !isAngleLocked -> "Tilt off by ${String.format(Locale.US, "%.1f", pErr)}°. Match target ${currentTarget.targetPitch.roundToInt()}°."
+                            !isCompassLocked -> "Heading off. Turn to face ${currentTarget.targetCompass.roundToInt()}° (${getCardinalDirection(currentTarget.targetCompass)})."
+                            else -> peakPlusState.guidanceMessage
+                        }
+                    }
                     !isAngleLocked -> RoastsRepository.getLiveMessageText(pErr, false)
-                    !isZoomLocked -> "Tilt locked! Now dial the zoom slider (off by ${String.format(Locale.US, "%.1f", abs(currentZoomRatio - currentTarget.targetZoom))}x)!"
-                    currentMode == CameraMode.PEAK && !isCompassLocked -> "Tilt & Zoom locked! Rotate phone to face ${currentTarget.targetCompass.roundToInt()}° (${getCardinalDirection(currentTarget.targetCompass)})!"
-                    else -> "Almost there, steady your hands!"
+                    !isZoomLocked -> "Tilt locked. Adjust zoom slider to ${String.format(Locale.US, "%.1f", currentTarget.targetZoom)}x (off by ${String.format(Locale.US, "%.1f", abs(currentZoomRatio - currentTarget.targetZoom))}x)."
+                    currentMode == CameraMode.PEAK && !isCompassLocked -> "Tilt & Zoom locked. Rotate phone to face ${currentTarget.targetCompass.roundToInt()}° (${getCardinalDirection(currentTarget.targetCompass)})."
+                    else -> "Almost there, steady your hands."
                 }
 
                 Surface(
@@ -943,8 +966,12 @@ fun CameraView() {
                                     letterSpacing = 1.sp
                                 )
                                 Text(
-                                    text = if (isAllMatched) "[READY 📸]" else if (currentMode == CameraMode.PEAK_PLUS) {
-                                        if (!peakPlusState.isArmStretched) "Stretch (~70cm)" else "Close Eyes 😴"
+                                    text = if (isAllMatched) "[READY]" else if (currentMode == CameraMode.PEAK_PLUS) {
+                                        if (!isZoomLocked) "Zoom ${String.format(Locale.US, "%.1f", currentTarget.targetZoom)}x"
+                                        else if (!isAngleLocked) "Tilt ${currentTarget.targetPitch.roundToInt()}°"
+                                        else if (!isCompassLocked) getCardinalDirection(currentTarget.targetCompass)
+                                        else if (!peakPlusState.isDistanceMatched) "${currentTarget.targetDistanceCm}cm"
+                                        else "Close Eyes"
                                     } else "Off by ${String.format(Locale.US, "%.1f", pErr)}°",
                                     color = if (isAllMatched) Color(0xFF00E676) else Color(0xFFFF5252),
                                     fontSize = 12.sp,
@@ -1037,7 +1064,7 @@ fun CameraView() {
                                     onPhotoSaved = { result ->
                                         isCapturing = false
                                         lastShotResult = result
-                                        currentTarget = generateRandomTarget(currentMode)
+                                        currentTarget = generateRandomTarget(currentMode, lensFacing)
                                         peakPlusState = PeakPlusState()
                                     },
                                     onError = { exception ->
@@ -1048,10 +1075,13 @@ fun CameraView() {
                             } else if (!isShutterUnlocked) {
                                 if (currentMode == CameraMode.PEAK_PLUS) {
                                     val msg = when {
-                                        !peakPlusState.faceDetected -> "Peak+ requires a face! Point camera at subject."
-                                        !peakPlusState.isArmStretched -> "Too close (${peakPlusState.estimatedDistanceCm} cm)! Stretch your arm full length to ~70cm! 📏"
-                                        !peakPlusState.areEyesClosed -> "Eyes are OPEN! Close both eyes to take photo! 😴"
-                                        else -> "Steady your phone! Almost ready..."
+                                        !isZoomLocked -> "Zoom off by ${String.format(Locale.US, "%.1f", abs(currentZoomRatio - currentTarget.targetZoom))}x. Match target ${String.format(Locale.US, "%.1f", currentTarget.targetZoom)}x."
+                                        !isAngleLocked -> "Tilt off by ${String.format(Locale.US, "%.1f", abs(currentPitch - currentTarget.targetPitch))}°. Match target ${currentTarget.targetPitch.roundToInt()}°."
+                                        !isCompassLocked -> "Heading off. Turn to face ${currentTarget.targetCompass.roundToInt()}° (${getCardinalDirection(currentTarget.targetCompass)})."
+                                        !peakPlusState.faceDetected -> "Peak+ requires a face. Point camera at subject."
+                                        !peakPlusState.isDistanceMatched -> "Adjust distance to target ${currentTarget.targetDistanceCm}cm (current: ${peakPlusState.estimatedDistanceCm}cm)."
+                                        !peakPlusState.areEyesClosed -> "Subject must close both eyes."
+                                        else -> "Hold steady."
                                     }
                                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                 } else {
@@ -1081,10 +1111,15 @@ fun CameraView() {
                         .align(Alignment.CenterEnd)
                         .clickable {
                             flipRotationAngle += 180f
-                            lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+                            val newFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
                                 CameraSelector.LENS_FACING_FRONT
                             } else {
                                 CameraSelector.LENS_FACING_BACK
+                            }
+                            lensFacing = newFacing
+                            if (currentMode == CameraMode.PEAK_PLUS) {
+                                currentTarget = generateRandomTarget(currentMode, newFacing)
+                                peakPlusState = PeakPlusState()
                             }
                         }
                 ) {
@@ -1718,10 +1753,11 @@ fun PuzzleLockStatusHUD(
     val isAngleClose = !isAngleLocked && pitchErr <= 14.0f
     val isCompassClose = !isCompassLocked && compassDiff <= 30.0f
 
-    val anyClose = if (mode == CameraMode.PEAK_PLUS) {
-        peakPlusState.isArmStretched || peakPlusState.areEyesClosed || peakPlusState.estimatedDistanceCm >= 50
-    } else {
-        isZoomClose || (mode != CameraMode.NORMAL && isAngleClose) || (mode == CameraMode.PEAK && isCompassClose)
+    val anyClose = when (mode) {
+        CameraMode.NORMAL -> isZoomClose
+        CameraMode.PRO -> isZoomClose || isAngleClose
+        CameraMode.PEAK -> isZoomClose || isAngleClose || isCompassClose
+        CameraMode.PEAK_PLUS -> isZoomClose || isAngleClose || isCompassClose || peakPlusState.isDistanceClose || peakPlusState.areEyesClosed
     }
 
     // ONE Single Sleek Frosted Capsule Box (No nested boxes, reduced padding)
@@ -1768,22 +1804,102 @@ fun PuzzleLockStatusHUD(
                     .background(Color.White.copy(alpha = 0.15f))
             )
 
-            if (mode == CameraMode.PEAK_PLUS) {
-                // Peak+ Mode: ONLY 2 physical requirements: Arm Stretch (~70cm) and Eyes Closed (😴)
-                // 1. Arm Stretch Requirement (~70cm)
+            // 2. Zoom Requirement (Active in all modes)
+            RequirementItem(
+                icon = { tint ->
+                    Icon(
+                        imageVector = Icons.Filled.ZoomIn,
+                        contentDescription = "Zoom",
+                        tint = tint,
+                        modifier = Modifier.size(15.dp)
+                    )
+                },
+                label = "Zoom",
+                targetValue = "${String.format(Locale.US, "%.1f", target.targetZoom)}x",
+                currentValue = "${String.format(Locale.US, "%.1f", currentZoom)}x",
+                isMatched = isZoomLocked,
+                isClose = isZoomClose,
+                isCompact = mode == CameraMode.PEAK_PLUS
+            )
+
+            // 3. Tilt Requirement (Active in Pro, Peak, and Peak+ modes)
+            if (mode != CameraMode.NORMAL) {
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(24.dp)
+                        .background(Color.White.copy(alpha = 0.15f))
+                )
+
                 RequirementItem(
-                    icon = { _ ->
+                    icon = { tint ->
+                        TiltedPhoneIcon(tint = tint)
+                    },
+                    label = "Tilt",
+                    targetValue = "${target.targetPitch.roundToInt()}°",
+                    currentValue = "${currentPitch.roundToInt()}°",
+                    isMatched = isAngleLocked,
+                    isClose = isAngleClose,
+                    isCompact = mode == CameraMode.PEAK_PLUS
+                )
+            }
+
+            // 4. Compass Requirement (Active in Peak and Peak+ modes)
+            if (mode == CameraMode.PEAK || mode == CameraMode.PEAK_PLUS) {
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(24.dp)
+                        .background(Color.White.copy(alpha = 0.15f))
+                )
+
+                val targetCardinal = getCardinalDirection(target.targetCompass)
+                val currentCardinal = getCardinalDirection(currentCompass)
+
+                RequirementItem(
+                    icon = { tint ->
                         Text(
-                            text = "📏",
-                            fontSize = 13.sp,
-                            modifier = Modifier.offset(y = (-1).dp)
+                            text = targetCardinal,
+                            color = tint,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp,
+                            modifier = Modifier.offset(y = (-2).dp)
                         )
                     },
-                    label = "Arm Stretch",
-                    targetValue = "~70 cm",
-                    currentValue = if (peakPlusState.isArmStretched) "STRETCHED" else if (peakPlusState.estimatedDistanceCm > 0) "${peakPlusState.estimatedDistanceCm} cm" else "--",
-                    isMatched = peakPlusState.isArmStretched,
-                    isClose = peakPlusState.estimatedDistanceCm >= 50
+                    label = "Compass",
+                    targetValue = "${target.targetCompass.roundToInt()}°",
+                    currentValue = "${currentCompass.roundToInt()}° ($currentCardinal)",
+                    isMatched = isCompassLocked,
+                    isClose = isCompassClose,
+                    isCompact = mode == CameraMode.PEAK_PLUS
+                )
+            }
+
+            // 5. Distance & Eyes Requirements (Active in Peak+ mode)
+            if (mode == CameraMode.PEAK_PLUS) {
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(24.dp)
+                        .background(Color.White.copy(alpha = 0.15f))
+                )
+
+                RequirementItem(
+                    icon = { tint ->
+                        Icon(
+                            painter = painterResource(R.drawable.ic_ruler),
+                            contentDescription = "Distance",
+                            tint = tint,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    },
+                    label = "Distance",
+                    targetValue = "${target.targetDistanceCm}cm",
+                    currentValue = if (peakPlusState.estimatedDistanceCm > 0) "${peakPlusState.estimatedDistanceCm}cm" else "--",
+                    isMatched = peakPlusState.isDistanceMatched,
+                    isClose = peakPlusState.isDistanceClose,
+                    isCompact = true
                 )
 
                 Box(
@@ -1793,91 +1909,22 @@ fun PuzzleLockStatusHUD(
                         .background(Color.White.copy(alpha = 0.15f))
                 )
 
-                // 2. Eyes Closed Requirement (😴)
-                RequirementItem(
-                    icon = { _ ->
-                        Text(
-                            text = "😴",
-                            fontSize = 13.sp,
-                            modifier = Modifier.offset(y = (-1).dp)
-                        )
-                    },
-                    label = "Eyes",
-                    targetValue = "Closed",
-                    currentValue = if (peakPlusState.areEyesClosed) "CLOSED" else "OPEN",
-                    isMatched = peakPlusState.areEyesClosed,
-                    isClose = peakPlusState.eyeClosedScore >= 0.5f
-                )
-            } else {
-                // Normal, Pro, Peak modes: Zoom, Tilt, Compass
-                // 2. Zoom Requirement
                 RequirementItem(
                     icon = { tint ->
                         Icon(
-                            imageVector = Icons.Filled.ZoomIn,
-                            contentDescription = "Zoom",
+                            painter = painterResource(R.drawable.ic_eye_closed),
+                            contentDescription = "Eyes",
                             tint = tint,
                             modifier = Modifier.size(15.dp)
                         )
                     },
-                    label = "Zoom",
-                    targetValue = "${String.format(Locale.US, "%.1f", target.targetZoom)}x",
-                    currentValue = "${String.format(Locale.US, "%.1f", currentZoom)}x",
-                    isMatched = isZoomLocked,
-                    isClose = isZoomClose
+                    label = "Eyes",
+                    targetValue = "Shut",
+                    currentValue = if (peakPlusState.areEyesClosed) "Shut" else if (peakPlusState.faceDetected) "Open" else "--",
+                    isMatched = peakPlusState.areEyesClosed,
+                    isClose = peakPlusState.eyeClosedScore >= 0.5f,
+                    isCompact = true
                 )
-
-                // 3. Tilt Requirement (Active in Pro and Peak modes)
-                if (mode == CameraMode.PRO || mode == CameraMode.PEAK) {
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(24.dp)
-                            .background(Color.White.copy(alpha = 0.15f))
-                    )
-
-                    RequirementItem(
-                        icon = { tint ->
-                            TiltedPhoneIcon(tint = tint)
-                        },
-                        label = "Tilt",
-                        targetValue = "${target.targetPitch.roundToInt()}°",
-                        currentValue = "${currentPitch.roundToInt()}°",
-                        isMatched = isAngleLocked,
-                        isClose = isAngleClose
-                    )
-                }
-
-                // 4. Compass Requirement (Active in Peak mode)
-                if (mode == CameraMode.PEAK) {
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(24.dp)
-                            .background(Color.White.copy(alpha = 0.15f))
-                    )
-
-                    val targetCardinal = getCardinalDirection(target.targetCompass)
-                    val currentCardinal = getCardinalDirection(currentCompass)
-
-                    RequirementItem(
-                        icon = { tint ->
-                            Text(
-                                text = targetCardinal,
-                                color = tint,
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.5.sp,
-                                modifier = Modifier.offset(y = (-2).dp)
-                            )
-                        },
-                        label = "Compass",
-                        targetValue = "${target.targetCompass.roundToInt()}°",
-                        currentValue = "${currentCompass.roundToInt()}° ($currentCardinal)",
-                        isMatched = isCompassLocked,
-                        isClose = isCompassClose
-                    )
-                }
             }
         }
     }
@@ -1892,6 +1939,7 @@ fun RequirementItem(
     currentValue: String,
     isMatched: Boolean,
     isClose: Boolean,
+    isCompact: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val accentColor by animateColorAsState(
@@ -1906,13 +1954,13 @@ fun RequirementItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+        modifier = modifier.padding(horizontal = if (isCompact) 1.5.dp else 4.dp, vertical = 2.dp)
     ) {
         // 1. Parallel Label on top ("Zoom", "Tilt", "Heading")
         Text(
             text = label,
             color = Color.White.copy(alpha = 0.65f),
-            fontSize = 8.5.sp,
+            fontSize = if (isCompact) 8.sp else 8.5.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
             softWrap = false
@@ -2152,7 +2200,7 @@ fun GlassmorphicZoomBar(
 
             Spacer(modifier = Modifier.width(6.dp))
 
-            // 4. Right Status Capsule Badge: "2.0x | 🔒" (No outline)
+            // 4. Right Status Capsule Badge: "2.0x" (No outline)
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = Color.White.copy(alpha = 0.08f)
@@ -2714,9 +2762,13 @@ private fun takePhotoWithCertification(
                                 ((aScore + cScore + zScore) / 3f).coerceIn(92f, 100f)
                             }
                             CameraMode.PEAK_PLUS -> {
-                                val dScore = if (peakPlusDistanceCm >= 60) 100f else (peakPlusDistanceCm / 60f * 100f)
-                                val eScore = if (peakPlusEyesClosed) 100f else 50f
-                                ((dScore + eScore) / 2f).coerceIn(90f, 100f)
+                                val aScore = (100f - (pitchErr / 5f) * 3f).coerceIn(80f, 100f)
+                                val cScore = (100f - (compassDiff / 5.5f) * 3f).coerceIn(80f, 100f)
+                                val zScore = (100f - (zoomErr / 0.15f) * 3f).coerceIn(80f, 100f)
+                                val distDiff = abs(peakPlusDistanceCm - target.targetDistanceCm)
+                                val dScore = (100f - (distDiff / 10f) * 5f).coerceIn(85f, 100f)
+                                val eScore = if (peakPlusEyesClosed) 100f else 60f
+                                ((aScore + cScore + zScore + dScore + eScore) / 5f).coerceIn(90f, 100f)
                             }
                         }
 
@@ -3074,15 +3126,19 @@ fun createCertificateBitmap(
 
     val isZoomOk = abs(actualZoom - target.targetZoom) <= 0.15f
     val isTiltOk = mode != CameraMode.NORMAL && abs(actualPitch - target.targetPitch) <= 5.0f
-    val isHeadingOk = mode == CameraMode.PEAK && abs((actualCompass - target.targetCompass + 540) % 360 - 180) <= 5.5f
+    val isHeadingOk = (mode == CameraMode.PEAK || mode == CameraMode.PEAK_PLUS) && abs((actualCompass - target.targetCompass + 540) % 360 - 180) <= 5.5f
+    val isDistanceOk = abs(peakPlusDistanceCm - target.targetDistanceCm) <= 10
+    val isEyesOk = peakPlusEyesClosed
 
     data class CertCol(val title: String, val value: String, val sub: String, val colorInt: Int, val isOk: Boolean)
     val columns = if (mode == CameraMode.PEAK_PLUS) {
         listOf(
             CertCol("ACCURACY", "${String.format(Locale.US, "%.1f", accuracy)}%", "GRADE: $grade", AndroidColor.parseColor("#00E676"), true),
-            CertCol("DISTANCE", "${peakPlusDistanceCm} cm", "TARGET: ~70 cm", if (peakPlusDistanceCm >= 60) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#E040FB"), peakPlusDistanceCm >= 60),
-            CertCol("EYES", if (peakPlusEyesClosed) "CLOSED 😴" else "OPEN", if (peakPlusEyesClosed) "ZEN MASTER" else "PEEKING", if (peakPlusEyesClosed) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FF5252"), peakPlusEyesClosed),
-            CertCol("ARM", "STRETCH", "FULL LENGTH", AndroidColor.parseColor("#00E676"), true)
+            CertCol("ZOOM", "${String.format(Locale.US, "%.1f", actualZoom)}x", "TGT: ${String.format(Locale.US, "%.1f", target.targetZoom)}x", if (isZoomOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FFB300"), isZoomOk),
+            CertCol("TILT", "${actualPitch.roundToInt()}°", "TGT: ${target.targetPitch.roundToInt()}°", if (isTiltOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FF5252"), isTiltOk),
+            CertCol("HEADING", "${actualCompass.roundToInt()}°", "TGT: ${target.targetCompass.roundToInt()}°", if (isHeadingOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FF5252"), isHeadingOk),
+            CertCol("DISTANCE", "${peakPlusDistanceCm}cm", "TGT: ${target.targetDistanceCm}cm", if (isDistanceOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#E040FB"), isDistanceOk),
+            CertCol("EYES", if (isEyesOk) "CLOSED" else "OPEN", if (isEyesOk) "VERIFIED" else "FAILED", if (isEyesOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FF5252"), isEyesOk)
         )
     } else {
         listOf(
@@ -3436,7 +3492,12 @@ fun UselessPeakturesGallery(
                             verticalArrangement = Arrangement.Center,
                             modifier = Modifier.padding(32.dp)
                         ) {
-                            Text(text = "📸", fontSize = 48.sp)
+                            Icon(
+                                imageVector = Icons.Filled.PhotoLibrary,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.35f),
+                                modifier = Modifier.size(48.dp)
+                            )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = "No Useless Peaktures yet!",

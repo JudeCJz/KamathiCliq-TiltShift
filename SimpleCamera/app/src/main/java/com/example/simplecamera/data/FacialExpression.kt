@@ -7,49 +7,42 @@ enum class FacialExpression(
     val id: String,
     val title: String,
     val prompt: String,
-    val emoji: String,
     val hint: String
 ) {
     BIG_SMILE(
         id = "smile",
         title = "Smile",
         prompt = "CHEESE! Big Smile!",
-        emoji = "😄",
         hint = "Show those teeth! Smile wider!"
     ),
     DEADPAN(
         id = "deadpan",
         title = "Poker Face",
         prompt = "Deadpan! Serious Poker Face!",
-        emoji = "😐",
         hint = "Stop laughing! Straight face, eyes open."
     ),
     WINK_LEFT(
         id = "wink_left",
         title = "Left Wink",
         prompt = "Wink your LEFT eye!",
-        emoji = "😉",
         hint = "Shut left eye, keep right eye wide open!"
     ),
     WINK_RIGHT(
         id = "wink_right",
         title = "Right Wink",
         prompt = "Wink your RIGHT eye!",
-        emoji = "😜",
         hint = "Shut right eye, keep left eye wide open!"
     ),
     EYES_SHUT(
         id = "eyes_shut",
         title = "Zen Eyes Shut",
         prompt = "Close both eyes completely!",
-        emoji = "😴",
         hint = "Peaceful sleep... Close both eyes!"
     ),
     TILT_HEAD(
         id = "tilt_head",
         title = "Head Tilt",
         prompt = "Curious tilt! Lean head sideways!",
-        emoji = "🤔",
         hint = "Tilt your head sideways like a confused dog!"
     );
 

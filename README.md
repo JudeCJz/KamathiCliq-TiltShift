@@ -1,143 +1,111 @@
-<img width="1280" height="640" alt="TiltShift Banner" src="https://github.com/user-attachments/assets/8920b256-2ba8-4988-b824-5351134eb4bd" />
+# TiltShift*
 
-# TiltShift* 🎯
+TiltShift* is an Android camera application built natively with Jetpack Compose and CameraX. It replaces traditional point-and-shoot camera behavior with hardware-enforced spatial and biometric puzzles. The shutter button remains locked until the user satisfies real-time physical constraints: digital zoom, gyroscope tilt, geomagnetic compass heading, subject distance, and facial eye state.
 
-> **"A camera app that aggressively refuses to take photos until you hold your phone at an absurdly specific mathematical angle, compass heading, and zoom magnification — then savagely roasts your posture."**
-
----
-
-## Basic Details
-### Team Name: TinkerLess
-
-### Team Members
-- Team Lead: JudeCJz - TinkerHub
+Every successful capture produces both the original photo and an official Certificate of Photographic Conformity documenting telemetry accuracy, score grade, and roast verdict directly to the device gallery.
 
 ---
 
-## Project Description
-**TiltShift\*** is an over-engineered, frustratingly precise Android camera app built natively with **Jetpack Compose** and **CameraX**. Instead of simply tapping a shutter button to capture life's moments, **TiltShift\*** padlocks the shutter behind real-time hardware gyroscope, geomagnetic compass, and digital zoom constraints. 
+## Core Modes
 
-If your phone is tilted even slightly off the target degree, the camera remains locked and displays live, savage roasts mocking your unsteady hands. Once you finally satisfy the celestial alignment gods, it captures your photo and mints an official, cryptographic **TiltShift\* Sensor Audit Certificate** with your accuracy grade and stamped roast verdict directly into your gallery!
+TiltShift* features four distinct camera puzzle modes available from the top-right menu:
 
----
+### 1. Normal Mode
+- **Constraint**: Target Zoom ratio (1.5x to 3.5x).
+- **Evaluation**: The user must dial the zoom slider to match the assigned magnification within a tolerance of ±0.15x.
 
-## The Problem (that doesn't exist)
-Modern smartphone cameras have made photography far too effortless. Point, tap, shoot. Anyone can do it. Society has completely lost respect for the sacred geometry of gyroscope pitch, geomagnetic azimuth, and optical zoom ratios. Casual photographers capture memories with crooked horizons, trembling hands, and zero regard for spatial trigonometry.
+### 2. Pro Mode
+- **Constraints**: Target Zoom ratio + Gyroscope Tilt angle.
+- **Evaluation**: The phone must be tilted to a specific pitch angle (15°, 25°, 35°, 45°, or 60° ±5.0°) while holding the assigned zoom level.
 
----
+### 3. Peak Mode
+- **Constraints**: Target Zoom ratio + Gyroscope Tilt angle + Compass heading.
+- **Evaluation**: The phone must simultaneously match the pitch angle, zoom ratio, and rotate to face the exact cardinal compass heading (e.g., North, East, South-West ±5.5°).
 
-## The Solution (that nobody asked for)
-**TiltShift\*** brings back the discipline. The shutter button stays padlocked until you:
-1. **Tilt your phone** to the exact mathematical degree requested (e.g. `45° ±5°`).
-2. **Face the required compass heading** (e.g. `180° South ±5.5°`).
-3. **Dial in the exact zoom multiplier** (e.g. `2.4x ±0.15x`).
-
-### Key Features
-- 😈 **Chad Mode by Default**: Blind mode with all visual spirit levels hidden — you have to feel the balance in your wrists!
-- 👶 **Baby Mode (Half-Transparent Assists)**: 50% opacity translucent assistive HUD with Lucide vector arrows, live degree counters, and an interactive 2D gimbal reticle.
-- 💀 **Live High-Contrast Savage Roasts**: Real-time insults rating your crooked posture (e.g. *"Off by 14°! Are you trying to photograph the ceiling?!"* or *"My grandma tilts straighter than this"*).
-- 🏆 **Dual Gallery Save**: Saves the raw JPEG alongside an official, stamped **TiltShift\* Sensor Audit Certificate** featuring your accuracy score (`99.2%`), rank grade (`S+ PERFECT`), and audit verdict.
-- 🎨 **Goofy Stickman Splash Screen**: Custom hand-drawn stickman photographer with dynamic crayon loading bar sprites and comedic calibration status messages.
-- 🖼️ **In-App Useless Peaktures Gallery**: Dedicated gallery browser to view your certified captures, accuracy grades, and share them directly.
-- ⚡ **Hardware Camera Shortcut Hijack**: Hooks into Android's `STILL_IMAGE_CAMERA` and `STILL_IMAGE_CAMERA_SECURE` intents with `showWhenLocked="true"`. Double-clicking your phone's power button or swiping from the lockscreen launches TiltShift* instead of your stock camera!
-
----
-
-## Game Modes & Difficulties
-
-### 🎮 Camera Modes (Top Right Dropdown Menu)
-- **Normal Mode** (Emerald): Dial into the exact random Zoom magnification (e.g. `2.0x ±0.15x`).
-- **Pro Mode** (Cyber Cyan): Requires both Gyroscope Tilt/Pitch Angle alignment (±5°) **AND** Zoom matching.
-- **Peak Mode** (Golden Amber): The ultimate challenge — requires **Tilt Angle** (±5°) + **Compass Heading** (±5.5°) + **Zoom Level** simultaneously!
-
-### 😈 Difficulties (Top Left Dropdown Menu)
-- **Chad Mode (Default)**: Visual spirit level is hidden. You must balance the phone blindly by feel.
-- **Baby Mode**: Semi-transparent (50% alpha) on-screen guidance HUD with Lucide directional chevrons, tilt/turn degree counters, and 2D gimbal reticle.
-
-### 🔘 Bottom Controls (Symmetric Layout)
-- **Left (58dp)**: Useless Peaktures Gallery button
-- **Center**: Tactile Puzzle Shutter button with dynamic lock/unlock state feedback
-- **Right (58dp)**: Front/Back Camera Switch button with smooth 180° animated rotation
+### 4. Peak+ Mode (Multi-Constraint Vision Challenge)
+- **Constraints**: All 4 modes combined:
+  - Target Zoom ratio (±0.15x)
+  - Gyroscope Tilt angle (±5.0°)
+  - Compass heading (±5.5°)
+  - Arm Stretch / Subject Distance (randomized target distance)
+    - Front Camera (Selfie): Randomized between 30 cm and 80 cm
+    - Back Camera: Randomized between 40 cm and 150 cm
+  - Eyes Closed: Google ML Kit Face Detection requires both eyes to be closed (eye-open probability <= 0.30).
+- **Evaluation**: The shutter unlocks only when all five physical and biometric requirements are concurrently satisfied.
 
 ---
 
-## Technical Details
+## Difficulties
 
-### Technologies / Components Used
-- **Language**: Kotlin (100% Native Android)
-- **UI Framework**: Jetpack Compose + Material 3 (Dark glassmorphism, tactile animations, dynamic badges)
-- **Camera Core**: Android CameraX (`camera-core`, `camera-camera2`, `camera-lifecycle`, `camera-view`)
-- **Hardware Sensors**: Android Sensor Framework with fused `Sensor.TYPE_ROTATION_VECTOR` and `SensorManager.getOrientation` for low-latency live pitch and azimuth
-- **Graphics & Certificate Engine**: Android `Canvas`, `Bitmap`, and `Paint` generating high-res 1080x1600 verification certificates with embedded photo previews and audit breakdowns
-- **Media Pipeline**: Android `MediaStore` ContentResolver integration saving directly to `Pictures/TiltShift`
+- **Chad Mode (Default)**: Blind operation. All on-screen visual level guides and direction indicators are hidden. The user must orient the phone by feel and live telemetry feedback.
+- **Baby Mode**: Assistive operation. Renders a translucent (50% opacity) overlay featuring Lucide directional chevrons, live degree delta counters, and spirit level alignment helpers.
 
 ---
 
-## Project Documentation & Previews
+## Key Features
 
-### 1. Official App Icon
-![TiltShift Logo](docs/screenshots/app_logo.png)
-*Official TiltShift* Doodle Camera App Icon*
-
-### 2. Launch Calibration Screen
-![Loading Screen](docs/screenshots/loading_screen_preview.png)
-*Hand-drawn stickman photographer with crayon loading bar sprites*
-
-### 3. Cryptographic Sensor Audit Certificate
-![Sensor Audit Certificate](docs/screenshots/certificate_preview.png)
-*Official stamped sensor audit card featuring accuracy grade, sensor telemetry, and roast verdict*
-
-### 4. Live Viewfinder - Chad Mode (Default)
-![Live Chad Mode](docs/screenshots/live_chad_mode.png)
-*Symmetric UI with Top-Right Mode dropdown, Bottom-Right Camera Switch, and live roast feedback*
-
-### 5. Live Viewfinder - Baby Mode (Half-Transparent Assists)
-![Live Baby Mode](docs/screenshots/live_baby_mode.png)
-*Half-transparent guidance HUD with 2D gimbal reticle, directional arrows, and turn indicators*
-
-### 6. Hardware Camera Shortcut Hijack
-![Camera Shortcut Hijack](docs/screenshots/camera_shortcut_hijack.png)
-*Registers as a system camera provider to intercept hardware power double-press and lockscreen swipes*
+- **Vector Interface**: Clean, consistent user interface utilizing Lucide vector icons and Material UI elements. Zero emojis.
+- **Non-Overlapping HUD Layout**: Unified top status architecture cleanly stacking the multi-sensor puzzle HUD and Peak+ challenge banner across all screen densities.
+- **Live Roast Engine**: Real-time evaluation banner that analyzes current sensor discrepancies and delivers contextual guidance and critiques based on physical offsets.
+- **Dual-File Verification System**: On capture, the app writes two files to the standard MediaStore gallery:
+  1. The raw captured photograph.
+  2. An official 1080x1600 Certificate of Photographic Conformity containing full telemetry breakdown, accuracy percentage, performance grade (S+, S, A, B), and audit verdict.
+- **In-App Peaktures Gallery**: Integrated gallery browser displaying certified captures with grade badges and direct share functionality.
+- **System Camera Provider Integration**: Implements `android.media.action.STILL_IMAGE_CAMERA` with `showWhenLocked="true"` to intercept lockscreen shortcuts and hardware power-button double-press gestures.
 
 ---
 
-## Implementation & Installation
+## Technical Specifications
 
-### Option 1: Direct APK Install (Plug & Play)
-Download and install the pre-compiled APK directly:
+- **Language**: Kotlin 1.9
+- **Minimum SDK**: Android 8.0 (API Level 26)
+- **Target SDK**: Android 14 (API Level 34)
+- **UI Framework**: Jetpack Compose with Material 3
+- **Camera Subsystem**: Android CameraX (Core, Camera2, Lifecycle, View, ImageCapture, ImageAnalysis)
+- **Computer Vision**: Google ML Kit Face Detection (`play-services-mlkit-face-detection`)
+- **Sensor Fusion**: Android Sensor Framework (`Sensor.TYPE_ROTATION_VECTOR`, `SensorManager.getOrientation`)
+- **Graphics Pipeline**: Hardware-accelerated Android Canvas rendering for dynamic certificates
+- **Storage Subsystem**: Android MediaStore ContentResolver (`Pictures/TiltShift`)
+
+---
+
+## Installation and Build
+
+### Pre-built APK Installation
+Connect your Android device via USB with USB Debugging enabled, then run:
 ```bash
 adb install -r apk/TiltShift.apk
 adb shell am start -n com.example.simplecamera/.MainActivity
 ```
 
-### Option 2: Build from Source with Gradle Wrapper
+### Building from Source
+Ensure Android SDK with platform-tools and build-tools (API 34) is installed.
 ```bash
-# 1. Clone the repository
-git clone https://github.com/JudeCJz/TinkerLess.git
-cd TinkerLess/SimpleCamera
-
-# 2. Build debug APK
-./gradlew assembleDebug
-
-# 3. Install to connected Android device
+cd SimpleCamera
+.\gradlew.bat assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n com.example.simplecamera/.MainActivity
 ```
 
 ---
 
-## Project Demo
-### Video Demonstration
-- **Demo Video Link**: *[Add your demo video / YouTube / Drive link here]*
-- *Demonstration of sensor alignment lock, live roast banner feedback, Baby Mode translucent 2D gimbal, and dual-file gallery certification generation.*
+## Architecture Overview
 
----
-
-## Team Contributions
-- **JudeCJz**: Ideation, architecture, CameraX integration, sensor fusion mathematics, Jetpack Compose UI design, certificate generator canvas, and savage roast copywriting.
-
----
-Made with ❤️ at TinkerHub Useless Projects 
-
-![Static Badge](https://img.shields.io/badge/TinkerHub-24?color=%23000000&link=https%3A%2F%2Fwww.tinkerhub.org%2F)
-![Static Badge](https://img.shields.io/badge/UselessProjects--26-26?link=https%3A%2F%2Ftinkerhub.org%2Fevents%2F1M8ORET9A1%2Fuseless-projects-3.0)
+```
+SimpleCamera/
+├── app/
+│   ├── src/main/
+│   │   ├── AndroidManifest.xml              # Permissions, camera features, intent filters
+│   │   ├── java/com/example/simplecamera/
+│   │   │   ├── MainActivity.kt              # App lifecycle, screen orientation, lockscreen behavior
+│   │   │   ├── data/
+│   │   │   │   ├── PeakPlusChallenge.kt     # Distance estimation, eye-state evaluation, ML Kit models
+│   │   │   │   └── Roasts.kt                # Sensor roast generator and telemetry text
+│   │   │   └── ui/camera/
+│   │   │       └── CameraScreen.kt          # CameraX pipeline, HUD, sensor listener, certificate generator
+│   │   └── res/
+│   │       ├── drawable/                    # Lucide vector drawables (ruler, eye-closed, compass, etc.)
+│   │       └── mipmap-*/                    # Edge-to-edge camera doodle application icon
+└── gradle/
+    └── libs.versions.toml                   # Version catalog
+```
