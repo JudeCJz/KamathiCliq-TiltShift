@@ -58,6 +58,28 @@ SimpleCamera/
 
 ---
 
+## 📦 Project Dependencies & Version Catalog
+
+| Component | Library Coordinate | Version / Source |
+| :--- | :--- | :--- |
+| **Android Gradle Plugin** | `com.android.application` | `9.0.1` |
+| **Kotlin Compiler** | `org.jetbrains.kotlin.android` | `2.3.20` |
+| **Compose Compiler** | `org.jetbrains.kotlin.plugin.compose` | `2.3.20` |
+| **Compose BOM** | `androidx.compose:compose-bom` | `2026.03.01` |
+| **Material 3** | `androidx.compose.material3:material3` | BOM Managed |
+| **Extended Icons** | `androidx.compose.material:material-icons-extended` | BOM Managed |
+| **CameraX Core** | `androidx.camera:camera-core` | `1.4.1` |
+| **CameraX Camera2** | `androidx.camera:camera-camera2` | `1.4.1` |
+| **CameraX Lifecycle** | `androidx.camera:camera-lifecycle` | `1.4.1` |
+| **CameraX View** | `androidx.camera:camera-view` | `1.4.1` |
+| **CameraX Extensions** | `androidx.camera:camera-extensions` | `1.4.1` |
+| **Navigation 3** | `androidx.navigation3:navigation3-ui` | `1.0.1` |
+| **Lifecycle Viewmodel** | `androidx.lifecycle:lifecycle-viewmodel-compose` | `2.10.0` |
+| **Core KTX** | `androidx.core:core-ktx` | `1.18.0` |
+| **Activity Compose** | `androidx.activity:activity-compose` | `1.13.0` |
+
+---
+
 ## 🚀 Building & Running
 
 ### Requirements

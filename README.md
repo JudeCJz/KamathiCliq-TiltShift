@@ -130,6 +130,26 @@ If you fail to give the phone its pose, its live roast engine immediately critiq
 
 ---
 
+## 📦 Dependencies & Libraries
+
+| Category | Library / Dependency | Version | Purpose |
+| :--- | :--- | :---: | :--- |
+| **Camera Core** | `androidx.camera:camera-core` | `1.4.1` | CameraX hardware camera control pipeline |
+| **Camera2 Interop** | `androidx.camera:camera-camera2` | `1.4.1` | Direct Camera2 sensor access & zero-shutter-lag capture |
+| **Camera Lifecycle** | `androidx.camera:camera-lifecycle` | `1.4.1` | Automatic camera session binding to Compose lifecycle |
+| **Camera View** | `androidx.camera:camera-view` | `1.4.1` | Hardware-accelerated `PreviewView` surface rendering |
+| **Camera Extensions**| `androidx.camera:camera-extensions` | `1.4.1` | Hardware optical and digital zoom ratio management |
+| **UI Framework** | `androidx.compose.ui:ui` | BOM `2026.03.01` | Declarative UI toolkit with state-driven recomposition |
+| **Design System** | `androidx.compose.material3:material3` | Latest | Material 3 Obsidian dark theme & surface tokens |
+| **Vector Icons** | `androidx.compose.material:material-icons-extended` | BOM | Extended system vector drawables |
+| **Navigation** | `androidx.navigation3:navigation3-ui` | `1.0.1` | Type-safe screen navigation & backstack handling |
+| **Lifecycle & VM** | `androidx.lifecycle:lifecycle-viewmodel-compose` | `2.10.0` | Sensor data state holders & lifecycle-aware observers |
+| **Sensors** | Android Sensor Framework (`android.hardware`) | System | Fused rotation vectors (`Sensor.TYPE_ROTATION_VECTOR`) |
+| **Graphics Engine** | `android.graphics.Canvas`, `Bitmap`, `Paint` | System | 1080x1600 cryptographic certificate minting engine |
+| **Storage Engine** | `android.provider.MediaStore` ContentResolver | System | Scoped storage gallery writes (`Pictures/TiltShift`) |
+
+---
+
 ## 📥 Installation & Build
 
 ### Option 1: Direct APK Install (Plug & Play)
