@@ -100,6 +100,16 @@ object RoastsRepository {
         }
     }
 
+    val EXPRESSION_ROASTS = listOf(
+        "Off-target face! You looked like a startled alpaca trying to match that %s.",
+        "Your facial muscles filed for bankruptcy halfway through that %s attempt.",
+        "That expression was 90%% panic and 10%% confusion. The camera lens is traumatized.",
+        "You were asked for %s, but you delivered pure existential dread.",
+        "AI face detection almost called emergency services trying to classify your face.",
+        "Close enough to %s, if %s meant dropping your jaw in complete helplessness.",
+        "That face gave pure 'student who forgot there was a final exam today' energy."
+    )
+
     // ---------------------------------------------------------
     // 3. MAIN SAVAGE ROAST GENERATOR
     // ---------------------------------------------------------
@@ -108,9 +118,14 @@ object RoastsRepository {
         mode: CameraMode,
         pitchErr: Float,
         compassErr: Float,
-        zoomErr: Float
+        zoomErr: Float,
+        expressionTitle: String? = null,
+        expressionScore: Float = 1.0f
     ): String {
         return when {
+            mode == CameraMode.PEAK_PLUS && expressionTitle != null && expressionScore < 0.85f -> {
+                String.format(Locale.US, EXPRESSION_ROASTS.random(), expressionTitle)
+            }
             mode != CameraMode.NORMAL && pitchErr > 12f -> {
                 String.format(Locale.US, EXTREME_PITCH_ROASTS.random(), pitchErr.roundToInt())
             }
@@ -123,8 +138,11 @@ object RoastsRepository {
             zoomErr > 0.08f -> {
                 String.format(Locale.US, ZOOM_ROASTS.random(), String.format(Locale.US, "%.2f", zoomErr))
             }
-            mode == CameraMode.PEAK && compassErr > 2.0f -> {
+            (mode == CameraMode.PEAK || mode == CameraMode.PEAK_PLUS) && compassErr > 2.0f -> {
                 String.format(Locale.US, COMPASS_ROASTS.random(), compassErr.roundToInt())
+            }
+            mode == CameraMode.PEAK_PLUS && expressionTitle != null -> {
+                "Flawless $expressionTitle! You actually matched the face without breaking the camera."
             }
             else -> ACCIDENTAL_PERFECTION_ROASTS.random()
         }

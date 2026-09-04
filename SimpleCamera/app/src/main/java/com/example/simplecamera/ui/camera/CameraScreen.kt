@@ -40,12 +40,21 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.LinearProgressIndicator
+import com.example.simplecamera.data.FacialExpression
+import com.example.simplecamera.data.ExpressionMatchResult
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetectorOptions
+import java.util.concurrent.Executors
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -179,13 +188,15 @@ enum class Difficulty(val label: String, val showLevelHelper: Boolean, val badge
 enum class CameraMode(val displayName: String, val accentColor: Color) {
     NORMAL("Normal", Color(0xFF00E676)), // Emerald Green - Zoom requirement only
     PRO("Pro", Color(0xFF00E5FF)),       // Cyber Cyan - Level + Zoom requirements
-    PEAK("Peak", Color(0xFFFFD54F))      // Golden Amber - All 3 requirements: Level + Compass + Zoom
+    PEAK("Peak", Color(0xFFFFD54F)),     // Golden Amber - All 3 requirements: Level + Compass + Zoom
+    PEAK_PLUS("Peak+", Color(0xFFE040FB)) // Neon Violet - Level + Compass + Zoom + Facial Expression
 }
 
 data class ModeTarget(
     val targetPitch: Float,      // Target tilt angle in degrees (-90 to +90)
     val targetCompass: Float,    // Target heading in degrees (0 to 359)
-    val targetZoom: Float        // Target zoom ratio (e.g. 1.5x to 3.5x)
+    val targetZoom: Float,       // Target zoom ratio (e.g. 1.5x to 3.5x)
+    val targetExpression: FacialExpression? = null // Target facial expression for Peak+ mode
 )
 
 data class ShotResult(
@@ -200,10 +211,11 @@ data class ShotResult(
     val target: ModeTarget,
     val actualPitch: Float,
     val actualCompass: Float,
-    val actualZoom: Float
+    val actualZoom: Float,
+    val expressionScore: Float = 1.0f
 )
 
-fun generateRandomTarget(): ModeTarget {
+fun generateRandomTarget(mode: CameraMode = CameraMode.PEAK): ModeTarget {
     val samplePitches = listOf(15f, 25f, 35f, 45f, 60f)
     val pitch = samplePitches.random()
 
@@ -212,7 +224,14 @@ fun generateRandomTarget(): ModeTarget {
     val sampleZooms = listOf(1.5f, 2.0f, 2.5f, 3.0f, 3.5f)
     val zoom = sampleZooms.random()
 
-    return ModeTarget(targetPitch = pitch, targetCompass = compass, targetZoom = zoom)
+    val expression = if (mode == CameraMode.PEAK_PLUS) FacialExpression.random() else null
+
+    return ModeTarget(
+        targetPitch = pitch,
+        targetCompass = compass,
+        targetZoom = zoom,
+        targetExpression = expression
+    )
 }
 
 fun getCardinalDirection(degrees: Float): String {
@@ -229,8 +248,15 @@ fun getCardinalDirection(degrees: Float): String {
     }
 }
 
-fun getSavageRoast(mode: CameraMode, pitchErr: Float, compassErr: Float, zoomErr: Float): String {
-    return RoastsRepository.generateSavageRoast(mode, pitchErr, compassErr, zoomErr)
+fun getSavageRoast(
+    mode: CameraMode,
+    pitchErr: Float,
+    compassErr: Float,
+    zoomErr: Float,
+    expressionTitle: String? = null,
+    expressionScore: Float = 1.0f
+): String {
+    return RoastsRepository.generateSavageRoast(mode, pitchErr, compassErr, zoomErr, expressionTitle, expressionScore)
 }
 
 @Composable
@@ -302,7 +328,30 @@ fun CameraView() {
     var maxZoomRatio by remember { mutableFloatStateOf(5.0f) }
 
     // Targets for puzzle
-    var currentTarget by remember { mutableStateOf(generateRandomTarget()) }
+    var currentTarget by remember { mutableStateOf(generateRandomTarget(currentMode)) }
+
+    // Peak+ Facial Expression state
+    var isFaceInFrame by remember { mutableStateOf(false) }
+    var expressionMatchScore by remember { mutableFloatStateOf(0f) }
+    var expressionMatched by remember { mutableStateOf(false) }
+    var expressionFeedback by remember { mutableStateOf("Looking for face...") }
+
+    // Background analysis executor and ML Kit FaceDetector
+    val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
+    val faceDetector = remember {
+        val options = FaceDetectorOptions.Builder()
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+            .build()
+        FaceDetection.getClient(options)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            faceDetector.close()
+            analysisExecutor.shutdown()
+        }
+    }
 
     // Live Sensors: Orientation pitch and compass azimuth
     var currentPitch by remember { mutableFloatStateOf(0f) }
@@ -358,11 +407,13 @@ fun CameraView() {
     val compassDiff = abs((currentCompass - currentTarget.targetCompass + 540) % 360 - 180)
     val isCompassLocked = compassDiff <= compassTolerance
     val isZoomLocked = abs(currentZoomRatio - currentTarget.targetZoom) <= zoomTolerance
+    val isExpressionLocked = if (currentMode == CameraMode.PEAK_PLUS) expressionMatched else true
 
     val isShutterUnlocked = when (currentMode) {
         CameraMode.NORMAL -> isZoomLocked
         CameraMode.PRO -> isAngleLocked && isZoomLocked
         CameraMode.PEAK -> isAngleLocked && isCompassLocked && isZoomLocked
+        CameraMode.PEAK_PLUS -> isAngleLocked && isCompassLocked && isZoomLocked && isExpressionLocked
     }
 
     val imageCapture = remember {
@@ -395,13 +446,52 @@ fun CameraView() {
                 .requireLensFacing(lensFacing)
                 .build()
 
+            val imageAnalysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build().also { analyzerUseCase ->
+                    analyzerUseCase.setAnalyzer(analysisExecutor) { imageProxy ->
+                        val mediaImage = imageProxy.image
+                        if (mediaImage != null && currentMode == CameraMode.PEAK_PLUS) {
+                            val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+                            val inputImage = InputImage.fromMediaImage(mediaImage, rotationDegrees)
+                            faceDetector.process(inputImage)
+                                .addOnSuccessListener { faces ->
+                                    if (faces.isNotEmpty()) {
+                                        val primaryFace = faces.maxByOrNull { it.boundingBox.width() * it.boundingBox.height() } ?: faces[0]
+                                        currentTarget.targetExpression?.let { exp ->
+                                            val result = exp.evaluate(primaryFace)
+                                            expressionMatchScore = result.score
+                                            expressionMatched = result.isMatched
+                                            expressionFeedback = result.feedback
+                                            isFaceInFrame = true
+                                        }
+                                    } else {
+                                        isFaceInFrame = false
+                                        expressionMatchScore = 0f
+                                        expressionMatched = false
+                                        expressionFeedback = "No face in frame! Point camera at face!"
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    expressionFeedback = "Detecting..."
+                                }
+                                .addOnCompleteListener {
+                                    imageProxy.close()
+                                }
+                        } else {
+                            imageProxy.close()
+                        }
+                    }
+                }
+
             try {
                 cameraProvider.unbindAll()
                 val camera = cameraProvider.bindToLifecycle(
                     lifecycleOwner,
                     cameraSelector,
                     preview,
-                    imageCapture
+                    imageCapture,
+                    imageAnalysis
                 )
                 cameraInstance = camera
 
@@ -630,6 +720,7 @@ fun CameraView() {
                                                 CameraMode.NORMAL -> "Zoom challenge"
                                                 CameraMode.PRO -> "Tilt + Zoom puzzle"
                                                 CameraMode.PEAK -> "Tilt + Zoom + Compass direction"
+                                                CameraMode.PEAK_PLUS -> "Tilt + Zoom + Compass + Facial Expression"
                                             },
                                             color = Color.White.copy(alpha = 0.45f),
                                             fontSize = 10.sp
@@ -638,7 +729,10 @@ fun CameraView() {
                                 },
                                 onClick = {
                                     currentMode = mode
-                                    currentTarget = generateRandomTarget()
+                                    currentTarget = generateRandomTarget(mode)
+                                    expressionMatched = false
+                                    expressionMatchScore = 0f
+                                    expressionFeedback = "Looking for face..."
                                     showModeMenu = false
                                 }
                             )
@@ -666,8 +760,80 @@ fun CameraView() {
                 isAngleLocked = isAngleLocked,
                 isCompassLocked = isCompassLocked,
                 isZoomLocked = isZoomLocked,
+                isExpressionLocked = isExpressionLocked,
+                expressionScore = expressionMatchScore,
                 isAllUnlocked = isShutterUnlocked
             )
+        }
+
+        // Dedicated Peak+ Expression Challenge Floating Banner
+        if (currentMode == CameraMode.PEAK_PLUS && currentTarget.targetExpression != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 142.dp, start = 16.dp, end = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFF141524).copy(alpha = 0.88f),
+                    border = BorderStroke(
+                        1.2.dp,
+                        if (isExpressionLocked) Color(0xFF00E676) else if (expressionMatchScore > 0.4f) Color(0xFFFFB300) else Color(0xFFE040FB)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = currentTarget.targetExpression!!.emoji,
+                            fontSize = 24.sp
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = currentTarget.targetExpression!!.prompt,
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = if (isExpressionLocked) "MATCHED 100%" else "${(expressionMatchScore * 100).toInt()}%",
+                                    color = if (isExpressionLocked) Color(0xFF00E676) else Color(0xFFE040FB),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(3.dp))
+                            LinearProgressIndicator(
+                                progress = { expressionMatchScore.coerceIn(0f, 1f) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(2.dp)),
+                                color = if (isExpressionLocked) Color(0xFF00E676) else if (expressionMatchScore > 0.4f) Color(0xFFFFB300) else Color(0xFFE040FB),
+                                trackColor = Color.White.copy(alpha = 0.15f)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = expressionFeedback,
+                                color = if (isExpressionLocked) Color(0xFF00E676) else Color.White.copy(alpha = 0.75f),
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // Bottom Controls Container (Houses the BOLD READABLE ROAST BANNER + Zoom Slider + Shutter)
@@ -692,13 +858,17 @@ fun CameraView() {
                 val pErr = abs(currentPitch - currentTarget.targetPitch)
                 val isAllMatched = isShutterUnlocked
 
-                val messageCategory = if (isAllMatched) "ALIGNMENT LOCKED (±5°)" else "YOU HAVE A MESSAGE"
+                val messageCategory = if (isAllMatched) "ALIGNMENT LOCKED" else "YOU HAVE A MESSAGE"
                 val messageText = if (isAllMatched) {
-                    "Alignment holding steady! Don't tremble, capture now."
+                    "All requirements locked! Don't tremble, capture now."
                 } else when {
+                    currentMode == CameraMode.PEAK_PLUS && !isExpressionLocked -> {
+                        if (!isFaceInFrame) "Peak+ requires a face! Point camera at subject."
+                        else "Match expression: ${currentTarget.targetExpression?.prompt ?: ""} ($expressionFeedback)"
+                    }
                     !isAngleLocked -> RoastsRepository.getLiveMessageText(pErr, false)
                     !isZoomLocked -> "Tilt locked! Now dial the zoom slider (off by ${String.format(Locale.US, "%.1f", abs(currentZoomRatio - currentTarget.targetZoom))}x)!"
-                    currentMode == CameraMode.PEAK && !isCompassLocked -> "Tilt & Zoom locked! Rotate phone to face ${currentTarget.targetCompass.roundToInt()}° (${getCardinalDirection(currentTarget.targetCompass)})!"
+                    (currentMode == CameraMode.PEAK || currentMode == CameraMode.PEAK_PLUS) && !isCompassLocked -> "Tilt & Zoom locked! Rotate phone to face ${currentTarget.targetCompass.roundToInt()}° (${getCardinalDirection(currentTarget.targetCompass)})!"
                     else -> "Almost there, steady your hands!"
                 }
 
@@ -785,7 +955,7 @@ fun CameraView() {
                     .padding(horizontal = 16.dp, vertical = 4.dp)
             )
 
-            // Shutter Row + Gallery + Camera Switch (Perfect Horizontal Symmetry)
+            // Shutter Button Row
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -835,11 +1005,15 @@ fun CameraView() {
                                     actualPitch = currentPitch,
                                     actualCompass = currentCompass,
                                     actualZoom = currentZoomRatio,
+                                    expressionScore = if (currentMode == CameraMode.PEAK_PLUS) expressionMatchScore else 1.0f,
                                     imageCapture = imageCapture,
                                     onPhotoSaved = { result ->
                                         isCapturing = false
                                         lastShotResult = result
-                                        currentTarget = generateRandomTarget()
+                                        currentTarget = generateRandomTarget(currentMode)
+                                        expressionMatched = false
+                                        expressionMatchScore = 0f
+                                        expressionFeedback = "Looking for face..."
                                     },
                                     onError = { exception ->
                                         isCapturing = false
@@ -847,11 +1021,23 @@ fun CameraView() {
                                     }
                                 )
                             } else if (!isShutterUnlocked) {
-                                val pitchErr = abs(currentPitch - currentTarget.targetPitch)
-                                val compassErr = compassDiff
-                                val zoomErr = abs(currentZoomRatio - currentTarget.targetZoom)
-                                val roastToast = getSavageRoast(currentMode, pitchErr, compassErr, zoomErr)
-                                Toast.makeText(context, roastToast, Toast.LENGTH_SHORT).show()
+                                if (currentMode == CameraMode.PEAK_PLUS && !isExpressionLocked) {
+                                    val prompt = currentTarget.targetExpression?.prompt ?: "Match expression"
+                                    Toast.makeText(context, "Face locked! $prompt ($expressionFeedback)", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val pitchErr = abs(currentPitch - currentTarget.targetPitch)
+                                    val compassErr = compassDiff
+                                    val zoomErr = abs(currentZoomRatio - currentTarget.targetZoom)
+                                    val roastToast = getSavageRoast(
+                                        currentMode,
+                                        pitchErr,
+                                        compassErr,
+                                        zoomErr,
+                                        currentTarget.targetExpression?.title,
+                                        expressionMatchScore
+                                    )
+                                    Toast.makeText(context, roastToast, Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
                     )
@@ -941,8 +1127,8 @@ fun BabyModeAssistOverlay(
 
     // Raw compass delta: positive means target is to the right (turn right), negative means turn left
     val rawCompassDiff = (targetCompass - currentCompass + 540) % 360 - 180
-    val compassNeedsLeft = (currentMode == CameraMode.PEAK) && (rawCompassDiff < -compassTolerance)
-    val compassNeedsRight = (currentMode == CameraMode.PEAK) && (rawCompassDiff > compassTolerance)
+    val compassNeedsLeft = (currentMode == CameraMode.PEAK || currentMode == CameraMode.PEAK_PLUS) && (rawCompassDiff < -compassTolerance)
+    val compassNeedsRight = (currentMode == CameraMode.PEAK || currentMode == CameraMode.PEAK_PLUS) && (rawCompassDiff > compassTolerance)
 
     // Pulsing animation for directional guidance
     val infiniteTransition = rememberInfiniteTransition(label = "babyModeBounce")
@@ -1136,10 +1322,10 @@ fun BabyModeAssistOverlay(
             contentAlignment = Alignment.Center
         ) {
             val clampedPitch = pitchDelta.coerceIn(-20f, 20f)
-            val clampedYaw = if (currentMode == CameraMode.PEAK) rawCompassDiff.coerceIn(-25f, 25f) else 0f
+            val clampedYaw = if (currentMode == CameraMode.PEAK || currentMode == CameraMode.PEAK_PLUS) rawCompassDiff.coerceIn(-25f, 25f) else 0f
             val bubbleOffsetX = (clampedYaw / 25f) * 36.dp.value
             val bubbleOffsetY = (-clampedPitch / 20f) * 36.dp.value
-            val isGimbalLocked = isAngleLocked && (currentMode != CameraMode.PEAK || isCompassLocked)
+            val isGimbalLocked = isAngleLocked && ((currentMode != CameraMode.PEAK && currentMode != CameraMode.PEAK_PLUS) || isCompassLocked)
 
             // Reticle Outer Ring & Target Center
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -1269,7 +1455,7 @@ fun BabyModeAssistOverlay(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
-                    } else if (currentMode == CameraMode.PEAK && !isCompassLocked) {
+                    } else if ((currentMode == CameraMode.PEAK || currentMode == CameraMode.PEAK_PLUS) && !isCompassLocked) {
                         Icon(
                             painter = painterResource(R.drawable.ic_lucide_compass),
                             contentDescription = null,
@@ -1492,6 +1678,8 @@ fun PuzzleLockStatusHUD(
     isAngleLocked: Boolean,
     isCompassLocked: Boolean,
     isZoomLocked: Boolean,
+    isExpressionLocked: Boolean = true,
+    expressionScore: Float = 1.0f,
     isAllUnlocked: Boolean
 ) {
     val pitchErr = abs(currentPitch - target.targetPitch)
@@ -1502,10 +1690,12 @@ fun PuzzleLockStatusHUD(
     val isZoomClose = !isZoomLocked && zoomErr <= 0.40f
     val isAngleClose = !isAngleLocked && pitchErr <= 14.0f
     val isCompassClose = !isCompassLocked && compassDiff <= 30.0f
+    val isFaceClose = mode == CameraMode.PEAK_PLUS && !isExpressionLocked && expressionScore >= 0.50f
 
     val anyClose = isZoomClose ||
             (mode != CameraMode.NORMAL && isAngleClose) ||
-            (mode == CameraMode.PEAK && isCompassClose)
+            ((mode == CameraMode.PEAK || mode == CameraMode.PEAK_PLUS) && isCompassClose) ||
+            isFaceClose
 
     // ONE Single Sleek Frosted Capsule Box (No nested boxes, reduced padding)
     Surface(
@@ -1568,8 +1758,8 @@ fun PuzzleLockStatusHUD(
                 isClose = isZoomClose
             )
 
-            // 3. Tilt Requirement (Active in Pro & Peak modes)
-            if (mode == CameraMode.PRO || mode == CameraMode.PEAK) {
+            // 3. Tilt Requirement (Active in Pro, Peak, and Peak+ modes)
+            if (mode == CameraMode.PRO || mode == CameraMode.PEAK || mode == CameraMode.PEAK_PLUS) {
                 Box(
                     modifier = Modifier
                         .width(1.dp)
@@ -1589,8 +1779,8 @@ fun PuzzleLockStatusHUD(
                 )
             }
 
-            // 4. Compass Requirement (Renamed to Compass, shows live facing direction under there)
-            if (mode == CameraMode.PEAK) {
+            // 4. Compass Requirement (Active in Peak and Peak+ modes)
+            if (mode == CameraMode.PEAK || mode == CameraMode.PEAK_PLUS) {
                 Box(
                     modifier = Modifier
                         .width(1.dp)
@@ -1617,6 +1807,31 @@ fun PuzzleLockStatusHUD(
                     currentValue = "${currentCompass.roundToInt()}° ($currentCardinal)",
                     isMatched = isCompassLocked,
                     isClose = isCompassClose
+                )
+            }
+
+            // 5. Expression Requirement (Active in Peak+ mode)
+            if (mode == CameraMode.PEAK_PLUS && target.targetExpression != null) {
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(24.dp)
+                        .background(Color.White.copy(alpha = 0.15f))
+                )
+
+                RequirementItem(
+                    icon = { _ ->
+                        Text(
+                            text = target.targetExpression.emoji,
+                            fontSize = 13.sp,
+                            modifier = Modifier.offset(y = (-1).dp)
+                        )
+                    },
+                    label = "Face",
+                    targetValue = target.targetExpression.title,
+                    currentValue = if (isExpressionLocked) "OK" else "${(expressionScore * 100).toInt()}%",
+                    isMatched = isExpressionLocked,
+                    isClose = isFaceClose
                 )
             }
         }
@@ -2416,6 +2631,7 @@ private fun takePhotoWithCertification(
     actualPitch: Float,
     actualCompass: Float,
     actualZoom: Float,
+    expressionScore: Float = 1.0f,
     imageCapture: ImageCapture,
     onPhotoSaved: (ShotResult) -> Unit,
     onError: (ImageCaptureException) -> Unit
@@ -2451,6 +2667,13 @@ private fun takePhotoWithCertification(
                                 val zScore = (100f - (zoomErr / 0.15f) * 4f)
                                 ((aScore + cScore + zScore) / 3f).coerceIn(92f, 100f)
                             }
+                            CameraMode.PEAK_PLUS -> {
+                                val aScore = (100f - (pitchErr / 5f) * 3f)
+                                val cScore = (100f - (compassDiff / 5.5f) * 3f)
+                                val zScore = (100f - (zoomErr / 0.15f) * 3f)
+                                val eScore = (expressionScore * 100f)
+                                ((aScore + cScore + zScore + eScore) / 4f).coerceIn(92f, 100f)
+                            }
                         }
 
                         val grade = when {
@@ -2460,7 +2683,14 @@ private fun takePhotoWithCertification(
                             else -> "B QUALIFIED"
                         }
 
-                        val roast = getSavageRoast(mode, pitchErr, compassDiff, zoomErr)
+                        val roast = getSavageRoast(
+                            mode = mode,
+                            pitchErr = pitchErr,
+                            compassErr = compassDiff,
+                            zoomErr = zoomErr,
+                            expressionTitle = target.targetExpression?.title,
+                            expressionScore = expressionScore
+                        )
 
                         val certBitmap = createCertificateBitmap(
                             context = context,
@@ -2472,7 +2702,8 @@ private fun takePhotoWithCertification(
                             actualZoom = actualZoom,
                             accuracy = accuracy,
                             grade = grade,
-                            roast = roast
+                            roast = roast,
+                            expressionScore = expressionScore
                         )
 
                         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(System.currentTimeMillis())
@@ -2505,7 +2736,8 @@ private fun takePhotoWithCertification(
                                         target = target,
                                         actualPitch = actualPitch,
                                         actualCompass = actualCompass,
-                                        actualZoom = actualZoom
+                                        actualZoom = actualZoom,
+                                        expressionScore = expressionScore
                                     )
                                 )
                             } else {
@@ -2538,7 +2770,8 @@ fun createCertificateBitmap(
     actualZoom: Float,
     accuracy: Float,
     grade: String,
-    roast: String
+    roast: String,
+    expressionScore: Float = 1.0f
 ): Bitmap {
     val cardWidth = 1080
     val cardHeight = 1440
@@ -2546,7 +2779,12 @@ fun createCertificateBitmap(
     val canvas = Canvas(output)
 
     val accentColorInt = AndroidColor.parseColor(
-        if (mode == CameraMode.PEAK) "#FFD54F" else if (mode == CameraMode.PRO) "#00E5FF" else "#00E676"
+        when (mode) {
+            CameraMode.PEAK_PLUS -> "#E040FB"
+            CameraMode.PEAK -> "#FFD54F"
+            CameraMode.PRO -> "#00E5FF"
+            CameraMode.NORMAL -> "#00E676"
+        }
     )
 
     // 1. Dark Obsidian Card Background
@@ -2786,28 +3024,40 @@ fun createCertificateBitmap(
     }
     canvas.drawRoundRect(sRect, 16f, 16f, sBorderPaint)
 
-    // 4 Metric Columns cleanly divided
-    val colW = sRect.width() / 4f
+    val isZoomOk = abs(actualZoom - target.targetZoom) <= 0.15f
+    val isTiltOk = mode != CameraMode.NORMAL && abs(actualPitch - target.targetPitch) <= 5.0f
+    val isHeadingOk = (mode == CameraMode.PEAK || mode == CameraMode.PEAK_PLUS) && abs((actualCompass - target.targetCompass + 540) % 360 - 180) <= 5.5f
+    val isFaceOk = mode == CameraMode.PEAK_PLUS && expressionScore >= 0.70f
+
+    data class CertCol(val title: String, val value: String, val sub: String, val colorInt: Int, val isOk: Boolean)
+    val columns = mutableListOf(
+        CertCol("ACCURACY", "${String.format(Locale.US, "%.1f", accuracy)}%", "GRADE: $grade", AndroidColor.parseColor("#00E676"), true),
+        CertCol("ZOOM", "${String.format(Locale.US, "%.1f", actualZoom)}x", "TARGET: ${String.format(Locale.US, "%.1f", target.targetZoom)}x", if (isZoomOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FFB300"), isZoomOk),
+        CertCol("TILT", "${actualPitch.roundToInt()}°", "TARGET: ${target.targetPitch.roundToInt()}°", if (isTiltOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FF5252"), isTiltOk),
+        CertCol("COMPASS", "${actualCompass.roundToInt()}°", "TARGET: ${target.targetCompass.roundToInt()}°", if (isHeadingOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor(if (mode == CameraMode.PEAK || mode == CameraMode.PEAK_PLUS) "#FF5252" else "#8B949E"), isHeadingOk)
+    )
+
+    if (mode == CameraMode.PEAK_PLUS && target.targetExpression != null) {
+        columns.add(
+            CertCol(
+                "FACE",
+                target.targetExpression.emoji,
+                target.targetExpression.title.uppercase(),
+                if (isFaceOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#E040FB"),
+                isFaceOk
+            )
+        )
+    }
+
+    val colW = sRect.width() / columns.size.toFloat()
     val colDivPaint = Paint().apply {
         color = AndroidColor.parseColor("#21262D")
         strokeWidth = 2f
     }
-    for (i in 1..3) {
+    for (i in 1 until columns.size) {
         val lx = sRect.left + i * colW
         canvas.drawLine(lx, sRect.top + 20f, lx, sRect.bottom - 20f, colDivPaint)
     }
-
-    val isZoomOk = abs(actualZoom - target.targetZoom) <= 0.15f
-    val isTiltOk = mode != CameraMode.NORMAL && abs(actualPitch - target.targetPitch) <= 5.0f
-    val isHeadingOk = mode == CameraMode.PEAK && abs((actualCompass - target.targetCompass + 540) % 360 - 180) <= 5.5f
-
-    data class CertCol(val title: String, val value: String, val sub: String, val colorInt: Int, val isOk: Boolean)
-    val columns = listOf(
-        CertCol("ACCURACY", "${String.format(Locale.US, "%.1f", accuracy)}%", "GRADE: $grade", AndroidColor.parseColor("#00E676"), true),
-        CertCol("ZOOM", "${String.format(Locale.US, "%.1f", actualZoom)}x", "TARGET: ${String.format(Locale.US, "%.1f", target.targetZoom)}x", if (isZoomOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FFB300"), isZoomOk),
-        CertCol("TILT", "${actualPitch.roundToInt()}°", "TARGET: ${target.targetPitch.roundToInt()}°", if (isTiltOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor("#FF5252"), isTiltOk),
-        CertCol("COMPASS", "${actualCompass.roundToInt()}°", "TARGET: ${target.targetCompass.roundToInt()}°", if (isHeadingOk) AndroidColor.parseColor("#00E676") else AndroidColor.parseColor(if (mode == CameraMode.PEAK) "#FF5252" else "#8B949E"), isHeadingOk)
-    )
 
     for (i in columns.indices) {
         val col = columns[i]
