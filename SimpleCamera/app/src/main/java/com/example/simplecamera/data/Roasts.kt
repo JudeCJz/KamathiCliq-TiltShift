@@ -110,6 +110,15 @@ object RoastsRepository {
         "That face gave pure 'student who forgot there was a final exam today' energy."
     )
 
+    val PEAK_PLUS_ARM_EYES_ROASTS = listOf(
+        "Arm trembling at %d cm! Are your biceps made of cooked spaghetti?",
+        "Held at %d cm with eyes shut: You look like you're meditating on an airplane emergency exit.",
+        "Full 70cm stretch achieved while completely blind to your own surroundings. Inspiring.",
+        "Taking photos 70cm away with eyes closed: peak trust, or pure sensory deprivation.",
+        "Your triceps endured the %d cm torture test while your eyelids did all the acting.",
+        "You reached full arm length and shut your eyes, praying the shot wouldn't look tragic."
+    )
+
     // ---------------------------------------------------------
     // 3. MAIN SAVAGE ROAST GENERATOR
     // ---------------------------------------------------------
@@ -120,11 +129,13 @@ object RoastsRepository {
         compassErr: Float,
         zoomErr: Float,
         expressionTitle: String? = null,
-        expressionScore: Float = 1.0f
+        expressionScore: Float = 1.0f,
+        peakPlusDistanceCm: Int = 70,
+        peakPlusEyesClosed: Boolean = true
     ): String {
         return when {
-            mode == CameraMode.PEAK_PLUS && expressionTitle != null && expressionScore < 0.85f -> {
-                String.format(Locale.US, EXPRESSION_ROASTS.random(), expressionTitle)
+            mode == CameraMode.PEAK_PLUS -> {
+                String.format(Locale.US, PEAK_PLUS_ARM_EYES_ROASTS.random(), peakPlusDistanceCm)
             }
             mode != CameraMode.NORMAL && pitchErr > 12f -> {
                 String.format(Locale.US, EXTREME_PITCH_ROASTS.random(), pitchErr.roundToInt())
@@ -138,11 +149,8 @@ object RoastsRepository {
             zoomErr > 0.08f -> {
                 String.format(Locale.US, ZOOM_ROASTS.random(), String.format(Locale.US, "%.2f", zoomErr))
             }
-            (mode == CameraMode.PEAK || mode == CameraMode.PEAK_PLUS) && compassErr > 2.0f -> {
+            mode == CameraMode.PEAK && compassErr > 2.0f -> {
                 String.format(Locale.US, COMPASS_ROASTS.random(), compassErr.roundToInt())
-            }
-            mode == CameraMode.PEAK_PLUS && expressionTitle != null -> {
-                "Flawless $expressionTitle! You actually matched the face without breaking the camera."
             }
             else -> ACCIDENTAL_PERFECTION_ROASTS.random()
         }
