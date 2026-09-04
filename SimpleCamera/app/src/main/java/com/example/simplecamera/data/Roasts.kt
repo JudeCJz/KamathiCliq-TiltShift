@@ -100,25 +100,6 @@ object RoastsRepository {
         }
     }
 
-    val EXPRESSION_ROASTS = listOf(
-        "Off-target face! You looked like a startled alpaca trying to match that %s.",
-        "Your facial muscles filed for bankruptcy halfway through that %s attempt.",
-        "That expression was 90%% panic and 10%% confusion. The camera lens is traumatized.",
-        "You were asked for %s, but you delivered pure existential dread.",
-        "AI face detection almost called emergency services trying to classify your face.",
-        "Close enough to %s, if %s meant dropping your jaw in complete helplessness.",
-        "That face gave pure 'student who forgot there was a final exam today' energy."
-    )
-
-    val PEAK_PLUS_ARM_EYES_ROASTS = listOf(
-        "Arm trembling at %d cm! Are your biceps made of cooked spaghetti?",
-        "Held at %d cm with eyes shut: You look like you're meditating on an airplane emergency exit.",
-        "Full 70cm stretch achieved while completely blind to your own surroundings. Inspiring.",
-        "Taking photos 70cm away with eyes closed: peak trust, or pure sensory deprivation.",
-        "Your triceps endured the %d cm torture test while your eyelids did all the acting.",
-        "You reached full arm length and shut your eyes, praying the shot wouldn't look tragic."
-    )
-
     // ---------------------------------------------------------
     // 3. MAIN SAVAGE ROAST GENERATOR
     // ---------------------------------------------------------
@@ -127,16 +108,9 @@ object RoastsRepository {
         mode: CameraMode,
         pitchErr: Float,
         compassErr: Float,
-        zoomErr: Float,
-        expressionTitle: String? = null,
-        expressionScore: Float = 1.0f,
-        peakPlusDistanceCm: Int = 70,
-        peakPlusEyesClosed: Boolean = true
+        zoomErr: Float
     ): String {
         return when {
-            mode == CameraMode.PEAK_PLUS -> {
-                String.format(Locale.US, PEAK_PLUS_ARM_EYES_ROASTS.random(), peakPlusDistanceCm)
-            }
             mode != CameraMode.NORMAL && pitchErr > 12f -> {
                 String.format(Locale.US, EXTREME_PITCH_ROASTS.random(), pitchErr.roundToInt())
             }

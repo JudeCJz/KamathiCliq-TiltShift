@@ -89,7 +89,4 @@ dependencies {
   implementation(libs.androidx.camera.lifecycle)
   implementation(libs.androidx.camera.view)
   implementation(libs.androidx.camera.extensions)
-
-  // ML Kit Face Detection for Peak+ Mode
-  implementation(libs.mlkit.face.detection)
 }
