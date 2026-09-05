@@ -1,6 +1,17 @@
 # TiltShift* 🎯 - Native Android Implementation
 
-> **"A camera app that aggressively refuses to take photos until you hold your phone at an absurdly specific mathematical angle, compass heading, and zoom multiplier — while savagely roasting your unsteady posture."**
+> **"A camera app that aggressively refuses to take photos until you hold your phone at an absurdly specific mathematical angle, compass heading, and zoom multiplier — while savagely roasting your handling."**
+
+---
+
+## 🚨 **PLEASE TRY OUT THE PEAK MODE IN THE CAMERA!** 🚨
+
+**Peak Mode** is the ultimate challenge! 🏔️ Access it via the **Top Right Dropdown Menu** and prepare yourself for the holy trinity of phone posing:
+- **Tilt Angle** (±5°) 
+- **Compass Heading** (±5.5°) 
+- **Zoom Level** simultaneously!
+
+The roast engine will *absolutely destroy* your technique if you're even slightly off. This is the endgame mode. Can you handle it? 🎯
 
 ---
 
