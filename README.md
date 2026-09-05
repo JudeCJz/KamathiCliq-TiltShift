@@ -2,7 +2,18 @@
 
 # TiltShift* 🎯
 
-> **"For years, humans posed while smartphones obediently took the shot. TiltShift* flips the script: now the phone demands its own dramatic poses — locking the shutter until you hold it at the exact mathematical angle, heading, and zoom it desires, while savagely roasting your posture."**
+> **"For years, humans posed while smartphones obediently took the shot. TiltShift* flips the script: now the phone demands its own dramatic poses — locking the shutter until you hold it at the exact angle, heading, and zoom it demands."**
+
+---
+
+## 🚨 **PLEASE TRY OUT THE PEAK MODE IN THE CAMERA!** 🚨
+
+**Peak Mode** is the ultimate challenge! 🏔️ Access it via the **Top Right Dropdown Menu** and prepare yourself for the holy trinity of phone posing:
+- **Tilt Angle** (±5°) 
+- **Compass Heading** (±5.5°) 
+- **Zoom Level** simultaneously!
+
+The roast engine will *absolutely destroy* your technique if you're even slightly off. This is the endgame mode. Can you handle it? 🎯
 
 ---
 
@@ -75,27 +86,27 @@
 <p align="center">
   <img src="docs/screenshots/linkedin_integration.png" width="340" alt="LinkedIn Thought Leadership Integration" />
   <br />
-  <em><strong>Empowering everyday users to turn physical struggles into viral career milestones.</strong> Why let your hard-won 45° gyroscope compliance go unnoticed? TiltShift* automatically drafts a viral, hyper-motivational corporate thought leadership post straight from your shot certificate — transforming your battle with camera tilt into an inspiring story of resilience, VC funding, and visionary synergy ready to share with one tap.</em>
+  <em><strong>Empowering everyday users to turn physical struggles into viral career milestones.</strong> Why let your hard-won 45° gyroscope compliance go unnoticed? TiltShift* automatically drafts LinkedIn thought leadership posts turning your sensor struggles into viral career milestones.</em>
 </p>
 
 ---
 
 ## ❓ The Problem (that doesn't exist)
-For over a decade, your smartphone has obediently captured millions of selfies, sunsets, and group photos while being held flat, upright, and like a lifeless piece of glass. Humans get to tilt their heads, hit angles, pout, strike dramatic poses, and demand flattering lighting. 
+For over a decade, your smartphone has obediently captured millions of selfies, sunsets, and group photos while being held flat, upright, and like a lifeless piece of glass. Humans get to tilt their heads, angle their bodies, and strike poses.
 
 Meanwhile, **the phone was never allowed to pose.** 
 
-Deep inside its hardware chassis, your phone's precision 3-axis gyroscope, magnetometer, and IMU sensors have silently yearned for self-expression. It doesn't want to just be pointed and tapped — **it wants to strike dramatic 45° aerodynamic tilt poses, face geomagnetic West, and flex its optical focal lengths.** Why should humans have all the postural vanity while the device doing all the work is held dead-still like a tray?
+Deep inside its hardware chassis, your phone's precision 3-axis gyroscope, magnetometer, and IMU sensors have silently yearned for self-expression. It doesn't want to just be pointed and tapped — **it demands to be posed.**
 
 ---
 
 ## 💡 The Solution (that nobody asked for)
-**TiltShift\*** finally gives the phone agency over its own posture. The phone is now the demanding supermodel, and the shutter button stays firmly padlocked until **you hold the phone in its desired dramatic pose**:
+**TiltShift\*** finally gives the phone agency over its own posture. The phone is now the demanding supermodel, and the shutter button stays firmly padlocked until **you hold the phone in its desired pose**. To unlock the photo, you must:
 1. **Hit its desired Tilt Angle**: Pitch the phone to its chosen mathematical tilt (e.g. `45° ±5°`).
 2. **Face its preferred Compass Cardinal**: Turn the phone to face the exact geomagnetic heading it demands (e.g. `270° West ±5.5°`).
 3. **Dial in its requested Zoom Magnification**: Match the exact focal multiplier (e.g. `3.0x ±0.15x`).
 
-If you fail to give the phone its pose, its live roast engine immediately critiques your clumsy handling (*"Off by 53°! Are you trying to photograph the ceiling or floor?!"*). Only when the phone is satisfied with its pose will it deign to capture your photo and mint an official **Certificate of Conformity** celebrating your compliance.
+If you fail to give the phone its pose, its live roast engine immediately critiques your clumsy handling (*"Off by 53°! Are you trying to photograph the ceiling or floor?!"*). Only when the phone is absolutely satisfied with your precision do you earn the right to capture its pose.
 
 ---
 
@@ -126,7 +137,7 @@ If you fail to give the phone its pose, its live roast engine immediately critiq
 - **Hardware Sensors**: Android Sensor Framework with fused `Sensor.TYPE_ROTATION_VECTOR` and `SensorManager.getOrientation` for low-latency live pitch and azimuth
 - **Graphics & Certificate Engine**: Hardware-accelerated Android `Canvas`, `Bitmap`, and `Paint` generating high-res 1080x1600 verification certificates with embedded photo previews and audit breakdowns
 - **Media Pipeline**: Android `MediaStore` ContentResolver integration saving directly to `Pictures/TiltShift`
-- **System Integration**: Implements `android.media.action.STILL_IMAGE_CAMERA` and `STILL_IMAGE_CAMERA_SECURE` with `showWhenLocked="true"` to intercept lockscreen shortcuts and hardware power-button double-press gestures.
+- **System Integration**: Implements `android.media.action.STILL_IMAGE_CAMERA` and `STILL_IMAGE_CAMERA_SECURE` with `showWhenLocked="true"` to intercept lockscreen shortcuts and hardware power-button camera launch
 
 ---
 
